@@ -1,0 +1,9 @@
+---
+- job:
+    name: foo
+
+- secret:
+    name: my-secret
+    data:
+      password: !encrypted/pkcs1-oaep
+        - 3nCrypT3Ds3Cr3T
