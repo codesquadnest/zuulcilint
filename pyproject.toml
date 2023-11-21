@@ -1,0 +1,34 @@
+[build-system]
+requires = [
+  "setuptools >= 68.2.2",
+  "setuptools_scm[toml] >= 8.0.4"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+ignore = [
+  "D211", # No blank lines allowed after function docstring
+  "D213", # Multi-line docstring summary should start at the second line
+  # temporary disabled until we fix them:
+  "T201",
+  "ANN",
+  "S603", # subprocess call - check for execution of untrusted input
+  "S607", # start process with a partial path
+]
+select = ["ALL"]
+target-version = "py38"
+# Same as Black.
+line-length = 88
+
+[tool.ruff.per-file-ignores]
+"tests/**/*.py" = ["S101"] # Use of assert detected.
+
+[tool.ruff.mccabe]
+# Implicit 10 is too low for our codebase, even black uses 18 as default.
+max-complexity = 20
+
+[tool.ruff.flake8-builtins]
+builtins-ignorelist = ["id"]
+
+[tool.setuptools_scm]
+write_to = "zuullint/_version.py"
