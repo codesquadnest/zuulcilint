@@ -1,3 +1,8 @@
 ---
 - job:
     name: foo
+    pre-run: playbooks/foo-pre.yaml
+
+- job:
+    name: bar
+    run: playbooks/foo-pre.yaml

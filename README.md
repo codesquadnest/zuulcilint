@@ -5,7 +5,18 @@
 ```
 pip install zuullint
 
-zuullint .zuul.yaml
+usage: zuullint [-h] [--version] [--check-playbook-paths] [--schema SCHEMA] file [file ...]
+
+positional arguments:
+  file                  file(s) or paths to lint
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --check-playbook-paths, -c
+                        check that playbook paths are valid
+  --schema SCHEMA, -s SCHEMA
+                        path to Zuul schema file
 ```
 
 ## Validate with pre-commit
@@ -14,7 +25,7 @@ Add the code below to your `.pre-commit-config.yaml` file:
 
 ```yaml
   - repo: https://github.com/codesquadnest/zuullint.git
-    rev: "0.1"
+    rev: "1.0"
     hooks:
       - id: zuullint
 ```
