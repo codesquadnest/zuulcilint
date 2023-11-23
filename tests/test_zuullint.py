@@ -1,13 +1,41 @@
-"""Zuul Linter Tests."""
-import pathlib
-import tempfile
+"""Zuul Linter Tests.
+
+This module contains tests for the Zuul Linter main module.
+"""
+
+import subprocess
 
 import pytest
 
-import zuullint.utils as zuullint_utils
+
+def test_invalid():
+    """Test that the linter correctly detects errors in an invalid Zuul YAML file.
+
+    Raises
+    ------
+        pytest.fail: If the linter does not fail as expected.
+    """
+    try:
+        subprocess.check_call(
+            ["python", "-m", "zuullint", "tests/data/zuul-config-invalid.yaml"],
+        )
+    except subprocess.CalledProcessError as e:
+        if e.returncode == 1:
+            return
+        pytest.fail(e)
+    pytest.fail("Expected to fail")
 
 
-def test_validate_schema():
-    """Test that validate_schema() returns True for valid schema."""
-    schema = {"foo": "bar"}
-    assert zuullint_utils.validate_schema(schema)
+def test_valid():
+    """Test that the linter does not detect errors in a valid Zuul YAML file.
+
+    Raises
+    ------
+    pytest.fail: If the linter fails unexpectedly.
+    """
+    try:
+        subprocess.call(
+            ["python", "zuullint", "-m", "tests/data/zuul-config-valid.yaml"],
+        )
+    except subprocess.CalledProcessError as e:
+        pytest.fail(e)
