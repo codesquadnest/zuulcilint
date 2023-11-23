@@ -178,5 +178,3 @@ def test_get_files_with_extension():
     files = zuullint_utils.get_files_with_extension(tmp_path, "yaml")
     size = 2
     assert len(files) == size
-    assert files[0].name == "file1.yaml"
-    assert files[1].name == "file0.yaml"

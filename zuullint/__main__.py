@@ -14,9 +14,6 @@ from jsonschema import Draft7Validator
 import zuullint.checker as zuul_checker
 import zuullint.utils as zuul_utils
 
-MSG_TYPES = ["error", "warning", "info", "success"]
-
-
 # Register custom yaml constructor for "encrypted/pkcs1-oaep"
 yaml.SafeLoader.add_constructor(
     "!encrypted/pkcs1-oaep",
