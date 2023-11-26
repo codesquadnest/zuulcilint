@@ -747,7 +747,7 @@
                     "title": "pipeline.trigger",
                     "description": "At least one trigger source must be supplied for each pipeline. Triggers are not exclusive - matching events may be placed in multiple pipelines, and they will behave independently in each of the pipelines they match.\nTriggers are loaded from their connection name. The driver type of the connection will dictate which options are available.",
                     "patternProperties": {
-                        "^.*$": {
+                        "^(?!name$|manager$|post-review$|description$|variant-description$|success-message$|failure-message$|start-message$|enqueue-message$|merge-conflict-message$|no-jobs-message$|dequeue-message$|footer-message$|trigger$).*": {
                             "type": "array",
                             "oneOf": [
                                 { "$ref": "#/definitions/github-trigger" },
@@ -1008,7 +1008,7 @@
                 }
             },
             "patternProperties": {
-                "^.*$": {
+                "^(?!name$|templates$|default-branch$|merge-mode$|vars$|queue$).*": {
                     "type": "object",
                     "title": "project.&lt;pipeline&gt;",
                     "description": "Each pipeline that the project participates in should have an entry in the project. The value for this key should be a dictionary with the following keys: jobs, debug, fail-fast.",
@@ -1118,7 +1118,7 @@
                     "description": "A dictionary which will be added to the Ansible variables available to the job. The values can be any of the normal YAML data types (strings, integers, dictionaries or lists) or encrypted strings.",
                     "examples": ["https://zuul-ci.org/docs/zuul/latest/project-config.html#encryption"],
                     "patternProperties": {
-                        "^.*$": {
+                        "^(?!(name$|data$).*": {
                             "title": "secret.data.&lt;value&gt;"
                         }
                     }
@@ -1338,7 +1338,7 @@
                             "type": "object",
                             "additionalProperties": false,
                             "patternProperties": {
-                                "^.*$": {
+                                "^(?!(event$|branch$|ref$|ignore-deletes$|email$|username$|comment$|require-approval$|reject-approval$|require$|reject$).*": {
                                     "title": "pipeline.trigger.&lt;gerrit source&gt;.approval.&lt;review category&gt;",
                                     "allOf": [
                                         {
@@ -1520,7 +1520,7 @@
                 }
             },
             "patternProperties": {
-                "^.*$": {
+                "^(?!(submit$|comment$).*": {
                     "title": "pipeline.reporter.&lt;gerrit source&gt;.&lt;review category&gt;",
                     "allOf": [
                         {
@@ -1732,7 +1732,7 @@
                                 }
                             },
                             "patternProperties": {
-                                "^.*$": {
+                                "^(?!(username$|email#|older-than$|newer-than$).*": {
                                     "title": "pipeline.require.&lt;gerrit source&gt;.approval.&lt;review category&gt;",
                                     "allOf": [
                                         {

@@ -6,3 +6,17 @@
 - job:
     name: bar
     run: playbooks/foo-pre.yaml
+
+
+- project:
+    name: "foo"
+    templates:
+      - "template1"
+    check:
+      jobs:
+        - foo
+        - bar
+    gate:
+      jobs:
+        - foo
+        - bar
