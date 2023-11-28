@@ -303,11 +303,18 @@
                 },
                 "post-run": {
                     "allOf": [
-                        {
-                            "title": "job.post-run",
-                            "description": "The name of a playbook or list of playbooks to run after the main body of a job. Values are either a string describing the full path to the playbook in the repo where the job is defined, or a dictionary"
-                        },
-                        { "$ref": "#/definitions/run-type" }
+                      {
+                        "title": "job.post-run",
+                        "description": "The name of a playbook or list of playbooks to run after the main body of a job.",
+                        "type": ["string", "array"],
+                        "items": {
+                          "oneOf": [
+                            { "type": "string" },
+                            { "type": "object" }
+                          ]
+                        }
+                      },
+                      { "$ref": "#/definitions/run-type" }
                     ]
                 },
                 "post-timeout": {
@@ -747,7 +754,7 @@
                     "title": "pipeline.trigger",
                     "description": "At least one trigger source must be supplied for each pipeline. Triggers are not exclusive - matching events may be placed in multiple pipelines, and they will behave independently in each of the pipelines they match.\nTriggers are loaded from their connection name. The driver type of the connection will dictate which options are available.",
                     "patternProperties": {
-                        "^(?!name$|manager$|post-review$|description$|variant-description$|success-message$|failure-message$|start-message$|enqueue-message$|merge-conflict-message$|no-jobs-message$|dequeue-message$|footer-message$|trigger$).*": {
+                        "^(?!(name$|manager$|post-review$|description$|variant-description$|success-message$|failure-message$|start-message$|enqueue-message$|merge-conflict-message$|no-jobs-message$|dequeue-message$|footer-message$|trigger$).*)": {
                             "type": "array",
                             "oneOf": [
                                 { "$ref": "#/definitions/github-trigger" },
@@ -975,6 +982,11 @@
                     "title": "project.name",
                     "description": "The name of the project. If Zuul is configured with two or more unique projects with the same name, the canonical hostname for the project should be included (e.g., git.example.com/foo). This can also be a regex. In this case the regex must start with ^ and match the full project name following the same rule as name without regex. If not given it is implicitly derived from the project where this is defined."
                 },
+                "description": {
+                    "type": "string",
+                    "title": "project.description",
+                    "description": "This field may be used to provide a textual description of the project. It may appear in the status page or in documentation."
+                },
                 "templates": {
                     "type": "array",
                     "items": { "type": "string" },
@@ -1008,7 +1020,7 @@
                 }
             },
             "patternProperties": {
-                "^(?!name$|templates$|default-branch$|merge-mode$|vars$|queue$).*": {
+                "^(?!(name$|description$|templates$|default-branch$|merge-mode$|vars$|queue$).*)": {
                     "type": "object",
                     "title": "project.&lt;pipeline&gt;",
                     "description": "Each pipeline that the project participates in should have an entry in the project. The value for this key should be a dictionary with the following keys: jobs, debug, fail-fast.",
@@ -1118,7 +1130,7 @@
                     "description": "A dictionary which will be added to the Ansible variables available to the job. The values can be any of the normal YAML data types (strings, integers, dictionaries or lists) or encrypted strings.",
                     "examples": ["https://zuul-ci.org/docs/zuul/latest/project-config.html#encryption"],
                     "patternProperties": {
-                        "^(?!(name$|data$).*": {
+                        "^(?!(name|data)$)": {
                             "title": "secret.data.&lt;value&gt;"
                         }
                     }
@@ -1148,7 +1160,7 @@
         },
         "run-type": {
             "oneOf": [
-                { "type": "string" },
+                { "type": ["string", "array"] },
                 {
                     "type": "object",
                     "properties": {
@@ -1338,7 +1350,7 @@
                             "type": "object",
                             "additionalProperties": false,
                             "patternProperties": {
-                                "^(?!(event$|branch$|ref$|ignore-deletes$|email$|username$|comment$|require-approval$|reject-approval$|require$|reject$).*": {
+                                "^(?!(event$|branch$|ref$|ignore-deletes$|email$|username$|comment$|require-approval$|reject-approval$|require$|reject$).*)": {
                                     "title": "pipeline.trigger.&lt;gerrit source&gt;.approval.&lt;review category&gt;",
                                     "allOf": [
                                         {
@@ -1520,7 +1532,7 @@
                 }
             },
             "patternProperties": {
-                "^(?!(submit$|comment$).*": {
+                "^(?!(submit$|comment$).*)": {
                     "title": "pipeline.reporter.&lt;gerrit source&gt;.&lt;review category&gt;",
                     "allOf": [
                         {
@@ -1732,7 +1744,7 @@
                                 }
                             },
                             "patternProperties": {
-                                "^(?!(username$|email#|older-than$|newer-than$).*": {
+                                "^(?!(username4|email$|older-than$|newer-than$).*)": {
                                     "title": "pipeline.require.&lt;gerrit source&gt;.approval.&lt;review category&gt;",
                                     "allOf": [
                                         {

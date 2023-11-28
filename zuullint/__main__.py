@@ -14,10 +14,9 @@ from jsonschema import Draft201909Validator
 import zuullint.checker as zuul_checker
 import zuullint.utils as zuul_utils
 
-# Register custom yaml constructor for "encrypted/pkcs1-oaep"
+# # Register custom yaml constructor for "encrypted/pkcs1-oaep"
 yaml.SafeLoader.add_constructor(
-    "!encrypted/pkcs1-oaep",
-    zuul_utils.encrypted_pkcs1_oaep_constructor,
+    "!encrypted/pkcs1-oaep", zuul_utils.encrypted_pkcs1_oaep_constructor,
 )
 
 

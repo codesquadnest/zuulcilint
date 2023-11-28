@@ -1,0 +1,42 @@
+---
+- nodeset:
+    name: nodeset1
+    nodes:
+      - name: controller
+        label: controller-label
+      - name: compute1
+        label: compute-label
+      - name:
+          - compute2
+          - web
+        label: compute-label
+    groups:
+      - name: ceph-osd
+        nodes:
+          - controller
+      - name: ceph-monitor
+        nodes:
+          - controller
+          - compute1
+          - compute2
+      - name: ceph-web
+        nodes:
+          - web
+
+- nodeset:
+    name: fast-nodeset
+    nodes:
+      - label: fast-label
+        name: controller
+
+- nodeset:
+    name: slow-nodeset
+    nodes:
+      - label: slow-label
+        name: controller
+
+- nodeset:
+    name: fast-or-slow
+    alternatives:
+      - fast-nodeset
+      - slow-nodeset

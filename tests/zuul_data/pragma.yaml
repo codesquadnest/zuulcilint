@@ -1,0 +1,8 @@
+---
+- pragma:
+    implied-branch-matchers: false
+
+- pragma:
+    implied-branches:
+      - stable/foo
+      - stable/bar

@@ -1,0 +1,63 @@
+---
+- job:
+    name: base
+    parent: null
+    nodeset:
+      nodes:
+        - name: ubuntu-jammy
+          label: ubuntu-jammy
+
+- job:
+    name: base
+    parent: null
+    description: |
+      The recommended base job.
+
+      All jobs ultimately inherit from this.  It runs a pre-playbook
+      which copies all of the job's prepared git repos on to all of
+      the nodes in the nodeset.
+
+      It also sets a default timeout value (which may be overidden).
+    pre-run:
+      - playbooks/base/pre.yaml
+    post-run:
+      - playbooks/base/post-ssh.yaml
+      - playbooks/base/post-logs.yaml
+    roles:
+      - zuul: zuul/zuul-jobs
+    timeout: 1800
+    nodeset:
+      nodes:
+        - name: ubuntu-jammy
+          label: ubuntu-jammy
+
+- job:
+    name: myjob
+    roles:
+      - zuul: myorg/our-roles-project
+      - zuul: myorg/ansible-role-foo
+        name: foo
+
+- job:
+    name: variable-example
+    nodeset:
+      nodes:
+        - name: controller
+          label: fedora-27
+        - name: api1
+          label: centos-7
+        - name: api2
+          label: centos-7
+      groups:
+        - name: api
+          nodes:
+            - api1
+            - api2
+    vars:
+      foo: "this variable is visible to all nodes"
+    host-vars:
+      controller:
+        bar: "this variable is visible only on the controller node"
+    group-vars:
+      api:
+        baz: "this variable is visible on api1 and api2"
