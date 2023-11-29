@@ -1,9 +1,62 @@
+[tool.poetry]
+name = "zuullint"
+version = "0.2.0"
+description = "Zuul CI linter"
+authors = ["Pedro Baptista <pedro.miguel.baptista@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+keywords = ["zuul", "ci", "linter"]
+include = ["pyproject.toml", "LICENSE", "README.md", "zuullint/zuul-schema.yaml"]
+exclude = ["tests/*"]
+packages = [{include = "zuullint"}]
+
+[tool.poetry.scripts]
+zuullint = "zuullint.__main__:main"
+
+[tool.poetry.dependencies]
+python = "^3.8, <4.0"
+PyYAML = "^6.0.1"
+jsonschema = "^4.20.0"
+six = "^1.16.0"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.5.0"
+pytest = "^7.4.3"
+tox = "^4.11.4"
+pytest-cov = "^4.1.0"
+ruff = "^0.1.6"
+
 [build-system]
-requires = [
-  "setuptools >= 68.2.2",
-  "setuptools_scm[toml] >= 8.0.4"
-]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# Configurations for black
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+extend-ignore = "E203,E501"
+
+# Configurations for pytest
+[tool.pytest]
+addopts = ["-ra", "--cov=zuullint", "--cov-report=term-missing"]
+testpaths = ["tests"]
+
+[toolpytest.cov]
+fail_under = 80
 
 [tool.ruff]
 ignore = [
@@ -16,7 +69,7 @@ ignore = [
   "S607", # start process with a partial path
 ]
 select = ["ALL"]
-target-version = "py38"
+target-version = "py310"
 # Same as Black.
 line-length = 88
 
@@ -30,5 +83,31 @@ max-complexity = 20
 [tool.ruff.flake8-builtins]
 builtins-ignorelist = ["id"]
 
-[tool.setuptools_scm]
-write_to = "zuullint/_version.py"
+
+# Configurations for tox
+[tool.tox]
+legacy_tox_ini = """
+    [tox]
+    envlist = py{38,39,310,311,312}, lint, pre-commit
+    skipsdist = True
+    skip_missing_interpreters = True
+
+    [testenv]
+    deps =
+        poetry
+    commands =
+        poetry install -v
+        poetry run pytest --cov=zuullint --cov-report=term-missing
+
+    [testenv:lint]
+    deps =
+        ruff
+    commands =
+        ruff zuullint tests
+
+    [testenv:pre-commit]
+    skip_install = true
+    deps = pre-commit
+    commands = pre-commit run --all-files --show-diff-on-failure
+
+"""
