@@ -106,19 +106,32 @@ def get_files_with_extension(path: str, extension: str) -> list[pathlib.Path]:
     return list(pathlib.Path(path).rglob(f"*.{extension}"))
 
 
-def encrypted_pkcs1_oaep_constructor(loader: str, node: str) -> list[str]:
-    """Construct a sequence from a YAML node representing an encrypted PKCS#1 OAEP key.
+def encrypted_pkcs1_oaep_constructor(loader: str, node: str) -> str:
+    """Handle encrypted strings in YAML files.
 
     Args:
     ----
-        loader: A YAML loader object.
-        node: A YAML node representing the encrypted key.
+        loader: The YAML loader.
+        node: The YAML node.
 
     Returns:
     -------
-        A sequence of bytes representing the encrypted key.
+        The decrypted string.
     """
-    return loader.construct_sequence(node)
+    if isinstance(node, yaml.ScalarNode):
+        # Handle scalar node
+        return loader.construct_scalar(node)
+    if isinstance(node, yaml.SequenceNode):
+        # Handle sequence node
+        return loader.construct_sequence(node)
+
+    # Handle other node types if needed
+    raise yaml.constructor.ConstructorError(
+        None,
+        None,
+        "invalid node type: '%s'" % type(node),
+        node.start_mark,
+    )
 
 
 def print_bold(msg: str, msg_type: str) -> None:

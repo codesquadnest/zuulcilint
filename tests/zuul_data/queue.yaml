@@ -1,0 +1,4 @@
+---
+- queue:
+    name: integrated
+    per-branch: false

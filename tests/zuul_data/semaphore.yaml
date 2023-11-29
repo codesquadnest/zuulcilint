@@ -1,0 +1,7 @@
+---
+- semaphore:
+    name: semaphore-foo
+    max: 5
+- semaphore:
+    name: semaphore-bar
+    max: 3

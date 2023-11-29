@@ -9,15 +9,14 @@ import pathlib
 import sys
 
 import yaml
-from jsonschema import Draft7Validator
+from jsonschema import Draft201909Validator
 
 import zuullint.checker as zuul_checker
 import zuullint.utils as zuul_utils
 
-# Register custom yaml constructor for "encrypted/pkcs1-oaep"
+# # Register custom yaml constructor for "encrypted/pkcs1-oaep"
 yaml.SafeLoader.add_constructor(
-    "!encrypted/pkcs1-oaep",
-    zuul_utils.encrypted_pkcs1_oaep_constructor,
+    "!encrypted/pkcs1-oaep", zuul_utils.encrypted_pkcs1_oaep_constructor,
 )
 
 
@@ -35,15 +34,13 @@ def lint(f: str, schema: dict) -> int:
     """
     print(f"  {f}")
     errors = 0
-    # we use Draft7Validator() because validate() can give misleading errors,
-    # see https://github.com/Julian/jsonschema/issues/646
-    v = Draft7Validator(schema)
+    validator = Draft201909Validator(schema)
 
     try:
         with pathlib.Path.open(pathlib.Path(f), encoding="utf-8") as yaml_in:
             try:
                 obj = yaml.safe_load(yaml_in)
-                va_errors = v.iter_errors(obj)
+                va_errors = validator.iter_errors(obj)
                 for e in va_errors:
                     print(e, file=sys.stderr)
                     errors += 1

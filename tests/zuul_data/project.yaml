@@ -1,0 +1,43 @@
+---
+- project:
+    name: ^.*$
+    check:
+      jobs: []
+    gate:
+      jobs: []
+
+- project:
+    name: zuul-config
+    check:
+      jobs:
+        - noop
+    gate:
+      jobs:
+        - noop
+
+
+- project-template:
+    name: sample-template
+    description: Description
+    vars:
+      var_from_template: foo
+    post:
+      jobs:
+        - template_job
+    release:
+      jobs:
+        - template_job
+
+- project:
+    name: Sample project
+    description: Description
+    templates:
+      - sample-template
+    vars:
+      var_for_all_jobs: value
+    check:
+      jobs:
+        - job1
+        - job2:
+            vars:
+              var_for_all_jobs: override

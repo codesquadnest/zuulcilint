@@ -5,7 +5,9 @@ from __future__ import annotations
 import pathlib
 
 
-def check_job_playbook_paths(job: dict[str, str] | None) -> list[str | None]:
+def check_job_playbook_paths(
+    job: dict[str, [str, list[str]]] | None,
+) -> list[str | None]:
     """Check that all playbooks in a job have a valid path.
 
     Args:
@@ -20,11 +22,14 @@ def check_job_playbook_paths(job: dict[str, str] | None) -> list[str | None]:
 
     invalid_paths = []
 
-    invalid_paths.extend(
-        [
-            path
-            for key in path_keys
-            if (path := job.get(key)) and not pathlib.Path(path).is_file()
-        ],
-    )
+    for key in path_keys:
+        if isinstance(job.get(key), list):
+            [
+                invalid_paths.append(path)
+                for path in job.get(key)
+                if not pathlib.Path(path).is_file()
+            ]
+        elif (path := job.get(key)) and not pathlib.Path(path).is_file():
+            invalid_paths.append(path)
+
     return invalid_paths
