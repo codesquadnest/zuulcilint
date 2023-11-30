@@ -61,3 +61,9 @@
     group-vars:
       api:
         baz: "this variable is visible on api1 and api2"
+
+- job:
+    name: bar
+    required-projects:
+      - name: org/project1
+        override-checkout: master

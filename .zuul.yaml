@@ -6,7 +6,9 @@
 - job:
     name: bar
     run: playbooks/foo-pre.yaml
-
+    required-projects:
+      - name: org/project1
+        override-checkout: master
 
 - project:
     name: "foo"

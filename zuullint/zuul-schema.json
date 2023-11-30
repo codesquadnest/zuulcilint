@@ -362,7 +362,7 @@
                         "properties": {
                             "name": { "type": "string" },
                             "override-checkout": {
-                                "type": "boolean",
+                                "type": "string",
                                 "description": "When Zuul runs jobs for a proposed change, it normally checks out the branch associated with that change on every project present in the job. If jobs are running on a ref (such as a branch tip or tag), then that ref is normally checked out. This attribute is used to override that behavior and indicate that this job should, regardless of the branch for the queue item, use the indicated ref (i.e., branch or tag) instead, for only this project. See also the job.override-checkout attribute to apply the same behavior to all projects in a job.\nThis value is also used to help select which variants of a job to run. If override-checkout is set, then Zuul will use this value instead of the branch of the item being tested when collecting any jobs to run which are defined in this project."
                             }
                         },
