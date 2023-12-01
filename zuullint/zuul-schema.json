@@ -174,21 +174,35 @@
                     "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.deduplicate"]
                 },
                 "dependencies": {
-                    "type": "array",
-                    "title": "job.dependencies",
-                    "description": "A list of other jobs upon which this job depends. Zuul will not start executing this job until all of its dependencies have completed successfully or have been paused, and if one or more of them fail, this job will not be run.\nThe format for this attribute is either a list of strings or dictionaries. Strings are interpreted as job names.",
-                    "items": {
-                        "type": ["string", "object"],
-                        "properties": {
-                            "name": { "type": "string" },
-                            "soft": {
-                                "type": "boolean",
-                                "default": false,
-                                "description": "A boolean value which indicates whether this job is a hard or soft dependency. A hard dependency will cause an error if the specified job is not run. That is, if job B depends on job A, but job A is not run for any reason (for example, it contains a file matcher which does not match), then Zuul will not run any jobs and report an error. A soft dependency will simply be ignored if the dependent job is not run."
-                            }
+                    "oneOf": [
+                        {
+                            "type": "string"
                         },
-                        "required": ["name"]
-                    }
+                        {
+                            "type": "array",
+                            "title": "job.dependencies",
+                            "description": "A list of other jobs upon which this job depends. Zuul will not start executing this job until all of its dependencies have completed successfully or have been paused, and if one or more of them fail, this job will not be run.\nThe format for this attribute is either a list of strings or dictionaries. Strings are interpreted as job names.",
+                            "items": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": { "type": "string" },
+                                            "soft": {
+                                                "type": "boolean",
+                                                "default": false,
+                                                "description": "A boolean value which indicates whether this job is a hard or soft dependency. A hard dependency will cause an error if the specified job is not run. That is, if job B depends on job A, but job A is not run for any reason (for example, it contains a file matcher which does not match), then Zuul will not run any jobs and report an error. A soft dependency will simply be ignored if the dependent job is not run."
+                                            }
+                                        },
+                                        "required": ["name"]
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
                 },
                 "extra-vars": {
                     "type": "object",
@@ -1041,7 +1055,7 @@
                                     },
                                     {
                                         "type": "object",
-                                        "$ref": "#/definitions/job"
+                                        "$ref": "#/definitions/anonymous-job"
                                     }
                                 ]
                             },
