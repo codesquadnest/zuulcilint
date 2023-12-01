@@ -9,7 +9,7 @@ jobs:
   testpypi-publish:
     name: upload test release to testPyPI
     runs-on: ubuntu-latest
-    environment: release
+    environment: pre-release
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
