@@ -1758,7 +1758,7 @@
                                 }
                             },
                             "patternProperties": {
-                                "^(?!(username4|email$|older-than$|newer-than$).*)": {
+                                "^(?!(username$|email$|older-than$|newer-than$).*)": {
                                     "title": "pipeline.require.&lt;gerrit source&gt;.approval.&lt;review category&gt;",
                                     "allOf": [
                                         {

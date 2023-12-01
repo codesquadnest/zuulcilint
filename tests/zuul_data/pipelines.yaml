@@ -35,6 +35,8 @@
         current-patchset: true
         approval:
           - Workflow: 1
+          - Verified: 1
+            username: foobar
     trigger:
       gerrit:
         - event: comment-added
