@@ -1,9 +1,9 @@
 ---
 name: upload test release to testPyPI
 "on":
-  release:
-    types:
-      - prereleased
+  push:
+    tags:
+      - "*.*.*-rc"
 
 jobs:
   testpypi-publish:
