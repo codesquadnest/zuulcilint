@@ -3,7 +3,7 @@ name: upload test release to testPyPI
 "on":
   push:
     tags:
-      - "*.*.*-rc"
+      - "*.*.*-rc*"
 
 jobs:
   testpypi-publish:
