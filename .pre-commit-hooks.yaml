@@ -1,9 +1,9 @@
 ---
-- id: zuullint
+- id: zuulcilint
   name: Zuul Job Linter
   description: Verifies if Zuul CI jobs files have valid syntax.
   language: python
   files: '^(zuul.d/|.?zuul).*\.yaml$'
   pass_filenames: true
   verbose: true
-  entry: zuullint
+  entry: zuulcilint

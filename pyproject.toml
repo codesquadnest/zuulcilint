@@ -1,17 +1,17 @@
 [tool.poetry]
-name = "zuullint"
+name = "zuulcilint"
 version = "0.2.1"
 description = "Zuul CI linter"
 authors = ["Pedro Baptista <pedro.miguel.baptista@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 keywords = ["zuul", "ci", "linter"]
-include = ["pyproject.toml", "LICENSE", "README.md", "zuullint/zuul-schema.yaml"]
+include = ["pyproject.toml", "LICENSE", "README.md", "zuulcilint/zuul-schema.yaml"]
 exclude = ["tests/*"]
-packages = [{include = "zuullint"}]
+packages = [{include = "zuulcilint"}]
 
 [tool.poetry.scripts]
-zuullint = "zuullint.__main__:main"
+zuulcilint = "zuulcilint.__main__:main"
 
 [tool.poetry.dependencies]
 python = "^3.8, <4.0"
@@ -52,7 +52,7 @@ extend-ignore = "E203,E501"
 
 # Configurations for pytest
 [tool.pytest]
-addopts = ["-ra", "--cov=zuullint", "--cov-report=term-missing"]
+addopts = ["-ra", "--cov=zuulcilint", "--cov-report=term-missing"]
 testpaths = ["tests"]
 
 [toolpytest.cov]
@@ -97,13 +97,13 @@ legacy_tox_ini = """
         poetry
     commands =
         poetry install -v
-        poetry run pytest --cov=zuullint --cov-report=term-missing
+        poetry run pytest --cov=zuulcilint --cov-report=term-missing
 
     [testenv:lint]
     deps =
         ruff
     commands =
-        ruff zuullint tests
+        ruff zuulcilint tests
 
     [testenv:pre-commit]
     skip_install = true

@@ -2,14 +2,14 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-# zuullint
+# zuulcilint
 
 ## Validate from the command line
 
 ```
-pip install zuullint
+pip install zuulcilint
 
-usage: zuullint [-h] [--version] [--check-playbook-paths] [--schema SCHEMA] file [file ...]
+usage: zuulcilint [-h] [--version] [--check-playbook-paths] [--schema SCHEMA] file [file ...]
 
 positional arguments:
   file                  file(s) or paths to lint
@@ -28,10 +28,10 @@ options:
 Add the code below to your `.pre-commit-config.yaml` file:
 
 ```yaml
-  - repo: https://github.com/codesquadnest/zuullint.git
+  - repo: https://github.com/codesquadnest/zuulcilint.git
     rev: "1.0"
     hooks:
-      - id: zuullint
+      - id: zuulcilint
 ```
 
 
@@ -47,7 +47,7 @@ validation by adding the following to `settings.json`:
 
 ```json
 "yaml.schemas": {
-    "https://raw.githubusercontent.com/codesquadnest/zuullint/master/zuullint/zuul-schema.json": ["*zuul.d/*.yaml", "*/.zuul.yaml"]
+    "https://raw.githubusercontent.com/codesquadnest/zuulcilint/master/zuulcilint/zuul-schema.json": ["*zuul.d/*.yaml", "*/.zuul.yaml"]
     },
 "yaml.customTags": [
     "!encrypted/pkcs1-oaep array"
