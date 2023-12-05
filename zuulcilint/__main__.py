@@ -43,14 +43,19 @@ def lint(file_path: str, schema: dict) -> int:
                 obj = yaml.safe_load(yaml_in)
                 va_errors = validator.iter_errors(obj)
                 for e in va_errors:
-                    print(e, file=sys.stderr)
+                    zuul_utils.print_bold("Validation error:", "error")
+                    print(f"  File: {file_path}")
+                    print(f"  Message: {e.message}")
+                    print(f"  Path: {list(e.path)}")
+                    print(f"  Schema Path: {list(e.schema_path)}\n")
                     errors += 1
             except yaml.YAMLError as e:
-                print(e)
+                print(f"YAML Parse Error: {e}")
                 errors += 1
     except FileNotFoundError as e:
         print(f"{e.filename} not found!\nExiting")
         sys.exit(1)
+
     return errors
 
 
