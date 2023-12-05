@@ -7,7 +7,7 @@ import tempfile
 
 import pytest
 
-import zuullint.utils as zuullint_utils
+import zuulcilint.utils as zuulcilint_utils
 
 
 def setup_tmp_list_of_files():
@@ -50,7 +50,7 @@ def test_get_schema_valid():
     tmp_schema = pathlib.Path(tempfile.mkstemp()[1])
     with pathlib.Path.open(tmp_schema, "w", encoding="utf-8") as f:
         f.write("{}")
-    assert zuullint_utils.get_zuul_schema(tmp_schema) == {}
+    assert zuulcilint_utils.get_zuul_schema(tmp_schema) == {}
 
 
 def test_get_schema_file_not_found():
@@ -58,7 +58,7 @@ def test_get_schema_file_not_found():
     tmp_schema = pathlib.Path(tempfile.mkstemp()[1])
     tmp_schema.unlink()
     try:
-        zuullint_utils.get_zuul_schema(tmp_schema)
+        zuulcilint_utils.get_zuul_schema(tmp_schema)
     except SystemExit:
         pytest.raises(FileNotFoundError)
 
@@ -69,7 +69,7 @@ def test_get_schema_invalid_json():
     with pathlib.Path.open(tmp_schema, "w", encoding="utf-8") as f:
         f.write("{- foo = bar}")
         with pytest.raises(SystemExit):
-            zuullint_utils.get_zuul_schema(tmp_schema)
+            zuulcilint_utils.get_zuul_schema(tmp_schema)
 
 
 def test_get_zuul_yaml_files_find():
@@ -77,7 +77,7 @@ def test_get_zuul_yaml_files_find():
     tmp_path = setup_tmp_list_of_files()
     default_len = 2
     zuul_yaml_files = [
-        file.name for file in zuullint_utils.get_zuul_yaml_files(tmp_path)
+        file.name for file in zuulcilint_utils.get_zuul_yaml_files(tmp_path)
     ]
     assert len(zuul_yaml_files) == default_len
     assert "file0.yaml" in zuul_yaml_files
@@ -85,9 +85,9 @@ def test_get_zuul_yaml_files_find():
 
     tmp_path = tmp_path / "subdir"
     tmp_path.mkdir()
-    assert len(zuullint_utils.get_zuul_yaml_files(tmp_path)) == 0
+    assert len(zuulcilint_utils.get_zuul_yaml_files(tmp_path)) == 0
 
-    assert len(zuullint_utils.get_zuul_yaml_files(tmp_path / "invalid_path")) == 0
+    assert len(zuulcilint_utils.get_zuul_yaml_files(tmp_path / "invalid_path")) == 0
 
 
 def test_get_zuul_yaml_files_skip():
@@ -98,18 +98,18 @@ def test_get_zuul_yaml_files_skip():
     tmp_path = tmp_path / "file2.yaml"
     with pathlib.Path.open(tmp_path, "w", encoding="utf-8") as f:
         f.write("hello")
-    assert len(zuullint_utils.get_zuul_yaml_files(tmp_path)) == 1
+    assert len(zuulcilint_utils.get_zuul_yaml_files(tmp_path)) == 1
 
     tmp_path = tmp_path.parent / "file3.yml"
     with pathlib.Path.open(tmp_path, "w", encoding="utf-8") as f:
         f.write("hello")
-    assert len(zuullint_utils.get_zuul_yaml_files(tmp_path)) == 0
+    assert len(zuulcilint_utils.get_zuul_yaml_files(tmp_path)) == 0
 
 
 def test_get_jobs_from_zuul_yaml():
     """Test that get_jobs_from_zuul_yaml() returns a list of jobs."""
     tmp_path = setup_zuul_job_yaml()
-    jobs = zuullint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
+    jobs = zuulcilint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
     assert len(jobs) == 1
     assert jobs[0]["job"]["name"] == "test-job"
 
@@ -120,7 +120,7 @@ def test_get_jobs_from_zuul_yaml_invalid_yaml():
     with pathlib.Path.open(tmp_path / "job.yaml", "w", encoding="utf-8") as f:
         f.write("{- foo = bar}")
     with pytest.raises(SystemExit):
-        zuullint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
+        zuulcilint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
 
 
 def test_get_jobs_from_zuul_yaml_no_jobs():
@@ -133,14 +133,14 @@ def test_get_jobs_from_zuul_yaml_no_jobs():
                 name: test-pipeline
             """,
         )
-    assert len(zuullint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")) == 0
+    assert len(zuulcilint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")) == 0
 
 
 def test_get_jobs_from_zuul_yaml_no_file():
     """Test return an empty list when no file is found."""
     tmp_path = setup_zuul_job_yaml()
     try:
-        zuullint_utils.get_jobs_from_zuul_yaml(tmp_path / "invalid_file")
+        zuulcilint_utils.get_jobs_from_zuul_yaml(tmp_path / "invalid_file")
     except SystemExit:
         pytest.raises(FileNotFoundError)
 
@@ -148,8 +148,8 @@ def test_get_jobs_from_zuul_yaml_no_file():
 def test_get_playbook_paths_from_job():
     """Test that get_playbook_paths_from_job() returns a list of playbook paths."""
     tmp_path = setup_zuul_job_yaml()
-    jobs = zuullint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
-    playbook_paths = zuullint_utils.get_playbook_paths_from_job(jobs[0].get("job"))
+    jobs = zuulcilint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
+    playbook_paths = zuulcilint_utils.get_playbook_paths_from_job(jobs[0].get("job"))
     size = 3
     assert len(playbook_paths) == size
     assert playbook_paths[0] == "playbooks/pre-run.yaml"
@@ -167,14 +167,14 @@ def test_get_playbook_paths_from_job_no_playbook_paths():
                 name: test-job
             """,
         )
-    jobs = zuullint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
-    playbook_paths = zuullint_utils.get_playbook_paths_from_job(jobs[0].get("job"))
+    jobs = zuulcilint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
+    playbook_paths = zuulcilint_utils.get_playbook_paths_from_job(jobs[0].get("job"))
     assert len(playbook_paths) == 0
 
 
 def test_get_files_with_extension():
     """Test return a list of files with the specified extension."""
     tmp_path = setup_tmp_list_of_files()
-    files = zuullint_utils.get_files_with_extension(tmp_path, "yaml")
+    files = zuulcilint_utils.get_files_with_extension(tmp_path, "yaml")
     size = 2
     assert len(files) == size

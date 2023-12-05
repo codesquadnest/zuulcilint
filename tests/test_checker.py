@@ -7,8 +7,8 @@ This module contains tests for the Zuul checker module.
 import pathlib
 import tempfile
 
-import zuullint.checker as zuullint_checker
-import zuullint.utils as zuullint_utils
+import zuulcilint.checker as zuulcilint_checker
+import zuulcilint.utils as zuulcilint_utils
 
 
 def setup_zuul_job_yaml():
@@ -35,9 +35,9 @@ def setup_zuul_job_yaml():
 def test_check_job_playbook_paths():
     """Test that check_job_playbook_paths() returns a list of invalid paths."""
     tmp_path = setup_zuul_job_yaml()
-    jobs = zuullint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
+    jobs = zuulcilint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
 
-    assert zuullint_checker.check_job_playbook_paths(jobs[0].get("job")) == [
+    assert zuulcilint_checker.check_job_playbook_paths(jobs[0].get("job")) == [
         "playbooks/pre-run.yaml",
         "playbooks/run.yaml",
         "playbooks/post-run.yaml",

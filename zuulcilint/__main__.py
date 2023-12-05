@@ -11,8 +11,8 @@ import sys
 import yaml
 from jsonschema import Draft201909Validator
 
-import zuullint.checker as zuul_checker
-import zuullint.utils as zuul_utils
+import zuulcilint.checker as zuul_checker
+import zuulcilint.utils as zuul_utils
 
 # # Register custom yaml constructor for "encrypted/pkcs1-oaep"
 yaml.SafeLoader.add_constructor(
@@ -60,11 +60,11 @@ def main():
     -------
         None.
     """
-    parser = argparse.ArgumentParser(prog="zuullint")
+    parser = argparse.ArgumentParser(prog="zuulcilint")
     parser.add_argument(
         "--version",
         action="version",
-        version=importlib.metadata.version("zuullint"),
+        version=importlib.metadata.version("zuulcilint"),
     )
     parser.add_argument(
         "--check-playbook-paths",
