@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import pathlib
-from typing import Dict, List, Set, Union
 
 
 def check_job_playbook_paths(
-    job: Dict[str, Union[str, List[str]]] | None
-) -> List[Union[str, None]]:
+    job: dict[str, str | list[str] | None],
+) -> list[str]:
     """Check that all playbooks in a job have a valid path.
 
     Args:
@@ -19,12 +18,14 @@ def check_job_playbook_paths(
     -------
         A list of invalid playbook paths.
     """
-    invalid_paths: List[Union[str, None]] = []
+    invalid_paths = []
 
     for key in ["pre-run", "run", "post-run"]:
         paths = job.get(key)
         if isinstance(paths, list):
-            invalid_paths.extend(path for path in paths if not pathlib.Path(path).is_file())
+            invalid_paths.extend(
+                path for path in paths if not pathlib.Path(path).is_file()
+            )
         elif paths and not pathlib.Path(paths).is_file():
             invalid_paths.append(paths)
 
@@ -32,17 +33,18 @@ def check_job_playbook_paths(
 
 
 def check_repeated_jobs(
-    jobs: List[List[Dict[str, str] | None]]
-) -> Set[Dict[str, str] | None]:
+    jobs: list[list[dict[str, str] | None]],
+) -> set[dict[str, str] | None]:
     """Check that all jobs are unique in different Zuul YAML files.
 
     Args:
+    ----
         jobs: A list of lists of dictionaries representing Zuul jobs.
 
     Returns:
+    -------
         A set of repeated jobs.
     """
-
     seen_items = set()
     repeated_items = set()
     unique_items = set()

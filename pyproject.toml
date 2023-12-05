@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "zuulcilint"
-version = "0.2.1"
+version = "0.2.2"
 description = "Zuul CI linter"
 authors = ["Pedro Baptista <pedro.miguel.baptista@gmail.com>"]
 license = "MIT"
