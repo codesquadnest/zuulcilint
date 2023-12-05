@@ -6,6 +6,7 @@ authors = ["Pedro Baptista <pedro.miguel.baptista@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 keywords = ["zuul", "ci", "linter"]
+repository = "https://github.com/codesquadnest/zuulcilint"
 include = ["pyproject.toml", "LICENSE", "README.md", "zuulcilint/zuul-schema.yaml"]
 exclude = ["tests/*"]
 packages = [{include = "zuulcilint"}]

@@ -42,3 +42,20 @@ def test_check_job_playbook_paths():
         "playbooks/run.yaml",
         "playbooks/post-run.yaml",
     ]
+
+
+def test_check_repeated_jobs():
+    """Test that check_repeated_jobs() returns a set of repeated jobs."""
+    jobs = [
+        [
+            {"job": {"name": "test-job"}},
+        ],
+        [
+            {"job": {"name": "test-job"}},
+            {"job": {"name": "test-job-2"}},
+        ],
+    ]
+
+    jobs = [[job.get("job").get("name") for job in sublist] for sublist in jobs]
+
+    assert zuulcilint_checker.check_repeated_jobs(jobs) == {("test-job")}
