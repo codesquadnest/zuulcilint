@@ -10,6 +10,7 @@ import sys
 
 import yaml
 from jsonschema import Draft201909Validator
+from collections import defaultdict
 
 import zuulcilint.checker as zuul_checker
 import zuulcilint.utils as zuul_utils
@@ -82,21 +83,13 @@ def lint_playbook_paths(zuul_yaml_files: list[pathlib.Path]) -> list[str]:
 
 
 def get_all_zuul_yaml_files(files: list[str]) -> list[pathlib.Path]:
-    """Get all Zuul YAML files from the specified file(s) or path(s)."""
-    zuul_yaml_files = []
-    for file_path in files:
-        zuul_yaml_files.extend(zuul_utils.get_zuul_yaml_files(pathlib.Path(file_path)))
+
+    zuul_yaml_files = defaultdict(list)
+
+    for f in files:
+        for k, v in zuul_utils.get_zuul_yaml_files(pathlib.Path(f)).items(): zuul_yaml_files[k].extend(v)
+
     return zuul_yaml_files
-
-
-def get_suspect_files(files: list[str]) -> list[str]:
-    """Get all suspect files from the specified file(s) or path(s)."""
-    files_with_extension = []
-    for file_path in files:
-        files_with_extension.extend(
-            zuul_utils.get_files_with_extension(pathlib.Path(file_path), "yml"),
-        )
-    return files_with_extension
 
 
 def get_all_jobs(zuul_yaml_files: list[pathlib.Path]) -> list[list[str]]:
@@ -171,9 +164,8 @@ def main():
 
     args = parser.parse_args()
     schema = zuul_utils.get_zuul_schema(schema_file=args.schema)
-    zuul_yaml_files = get_all_zuul_yaml_files(args.file)
+    all_zuul_yaml_files = get_all_zuul_yaml_files(args.file)
     invalid_playbook_paths = []
-    suspect_yml_files = get_suspect_files(args.file)
 
     # Initialize results dictionary
     results = {
@@ -182,20 +174,20 @@ def main():
     }
 
     # Lint all Zuul YAML files
-    results["errors"]["yaml"] = lint_all_yaml_files(zuul_yaml_files, schema)
-    results["warnings"]["file_extension"] = len(suspect_yml_files)
+    results["errors"]["yaml"] = lint_all_yaml_files(all_zuul_yaml_files["good_yaml"], schema)
+    results["warnings"]["file_extension"] = len(all_zuul_yaml_files["bad_yaml"])
 
     # Check playbook paths if specified
     if args.check_playbook_paths:
         zuul_utils.print_bold("Checking playbook paths", "info")
-        invalid_playbook_paths = lint_playbook_paths(zuul_yaml_files)
+        invalid_playbook_paths = lint_playbook_paths(all_zuul_yaml_files["good_yaml"])
         results["errors"]["playbook_paths"] = len(invalid_playbook_paths)
         for path in invalid_playbook_paths:
             print(f"  {path}")
 
     # Check repeated jobs
     zuul_utils.print_bold("Checking repeated jobs", "info")
-    repeated_jobs = zuul_checker.check_repeated_jobs(get_all_jobs(zuul_yaml_files))
+    repeated_jobs = zuul_checker.check_repeated_jobs(get_all_jobs(all_zuul_yaml_files["good_yaml"]))
     if repeated_jobs:
         for job in repeated_jobs:
             print(f"  {job}")
@@ -205,7 +197,7 @@ def main():
 
     # Print warnings
     zuul_utils.print_bold("Warnings", "warning")
-    print_warnings(suspect_yml_files, repeated_jobs)
+    print_warnings(all_zuul_yaml_files["bad_yaml"], repeated_jobs)
 
     # Print results
     if results["errors"]["yaml"] or results["errors"]["playbook_paths"]:

@@ -1,6 +1,7 @@
 """Set of utility functions for Zuul Lint."""
 
 from __future__ import annotations
+from collections import defaultdict
 
 import json
 import pathlib
@@ -31,8 +32,8 @@ def get_zuul_schema(schema_file: str) -> dict:
         sys.exit(1)
 
 
-def get_zuul_yaml_files(path: pathlib.Path) -> list[pathlib.Path]:
-    """Retrieve a list of Zuul YAML files from the specified path.
+def get_zuul_yaml_files(path: pathlib.Path) -> Dict[str, list[pathlib.Path]]:
+    """Retrieve a dictionary of Zuul YAML/YML files from the specified path.
 
     Args:
     ----
@@ -40,16 +41,23 @@ def get_zuul_yaml_files(path: pathlib.Path) -> list[pathlib.Path]:
 
     Returns:
     -------
-        List[Path]: A list of Path objects representing the Zuul YAML files found.
+        Dict[str, List[Path]]: A dictionary containing the keys 'good_yaml'(.yaml) and 'bad_yaml'(.yml) 
+        and a list that contains the Path objects for each of the file extensions found.
     """
-    zuul_yaml_files = []
-    if path.is_file() and path.suffix == ".yaml":
-        zuul_yaml_files.append(path)
-    elif path.is_dir():
+
+    zuul_yaml_files = defaultdict(list)
+
+    if(path.is_file()):
+        match path.suffix:
+            case ".yaml": zuul_yaml_files["good_yaml"].append(path)
+            case ".yml": zuul_yaml_files["bad_yaml"].append(path)
+            case _: pass
+    elif(path.is_dir()):
         for p in path.iterdir():
-            zuul_yaml_files.extend(get_zuul_yaml_files(p))
-    else:
-        print(f"Skipping {path}")
+            for yaml_file, yaml_file_path in get_zuul_yaml_files(p).items(): zuul_yaml_files[yaml_file].extend(yaml_file_path)
+
+    else: print(f"Skipping {path}")
+
     return zuul_yaml_files
 
 

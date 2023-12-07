@@ -77,7 +77,7 @@ def test_get_zuul_yaml_files_find():
     tmp_path = setup_tmp_list_of_files()
     default_len = 2
     zuul_yaml_files = [
-        file.name for file in zuulcilint_utils.get_zuul_yaml_files(tmp_path)
+        file.name for file in zuulcilint_utils.get_zuul_yaml_files(tmp_path)["good_yaml"]
     ]
     assert len(zuul_yaml_files) == default_len
     assert "file0.yaml" in zuul_yaml_files
@@ -98,12 +98,14 @@ def test_get_zuul_yaml_files_skip():
     tmp_path = tmp_path / "file2.yaml"
     with pathlib.Path.open(tmp_path, "w", encoding="utf-8") as f:
         f.write("hello")
-    assert len(zuulcilint_utils.get_zuul_yaml_files(tmp_path)) == 1
+    assert len(zuulcilint_utils.get_zuul_yaml_files(tmp_path)["good_yaml"]) == 1
+    assert len(zuulcilint_utils.get_zuul_yaml_files(tmp_path)["bad_yaml"]) == 0
 
     tmp_path = tmp_path.parent / "file3.yml"
     with pathlib.Path.open(tmp_path, "w", encoding="utf-8") as f:
         f.write("hello")
-    assert len(zuulcilint_utils.get_zuul_yaml_files(tmp_path)) == 0
+    assert len(zuulcilint_utils.get_zuul_yaml_files(tmp_path)["good_yaml"]) == 0
+    assert len(zuulcilint_utils.get_zuul_yaml_files(tmp_path)["bad_yaml"]) == 1
 
 
 def test_get_jobs_from_zuul_yaml():
