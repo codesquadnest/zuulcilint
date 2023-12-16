@@ -52,3 +52,13 @@
     failure:
       gerrit:
         Verified: -2
+
+- pipeline:
+    name: periodic-nightly
+    description: |
+      This pipeline is executed every hour from 1-4 AM on week days.
+    manager: independent
+    post-review: true
+    trigger:
+      timer:
+        - time: 0 1-4 * * 0-4

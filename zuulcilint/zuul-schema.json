@@ -773,7 +773,8 @@
                             "oneOf": [
                                 { "$ref": "#/definitions/github-trigger" },
                                 { "$ref": "#/definitions/gerrit-trigger" },
-                                { "$ref": "#/definitions/zuul-trigger" }
+                                { "$ref": "#/definitions/zuul-trigger" },
+                                { "$ref": "#/definitions/timer-trigger" }
                             ]
                         }
                     }
@@ -1464,6 +1465,22 @@
                         "type": "string",
                         "title": "pipeline.trigger.&lt;zuul source&gt;.pipeline",
                         "description": "Only available for parent-change-enqueued events. This is the name of the pipeline in which the parent change was enqueued."
+                    }
+                }
+            }
+        },
+        "timer-trigger": {
+            "title": "pipeline.trigger.&lt;timer&gt;",
+            "items": {
+                "type": "object",
+                "required": ["time"],
+                "properties": {
+                    "time": {
+                        "type": "string",
+                        "format": "regex",
+                        "pattern": "(((([0-5]?[0-9])(-[0-5]?[0-9])?)|\\*)([,/](([0-5]?[0-9])(-[0-5]?[0-9])?))*) ((((2[0-3]|(0|1)[0-9]|[0-9])(-(2[0-3]|(0|1)[0-9]|[0-9]))?)|\\*)([,/]((2[0-3]|(0|1)[0-9]|[0-9])(-(2[0-3]|(0|1)[0-9]|[0-9]))?))*) ((((3[01]|[12][0-9]|[1-9])(-(3[01]|[12][0-9]|[1-9]))?)|\\*))([,/]((3[01]|[12][0-9]|[1-9])(-(3[01]|[12][0-9]|[1-9]))?))* (((1[0-2]|[1-9])(-(1[0-2]|[1-9]))?)|\\*)(([,/]((1[0-2]|[1-9])(-(1[0-2]|[1-9]))?))*) ((([0-6])(-([0-6]))?|\\*)([,/]([0-6])(-([0-6]))?)*)( (([0-5]?[0-9])|\\*))?( ([0-9])+)?",
+                        "title": "pipeline.trigger.&lt;timere&gt;.time",
+                        "description": "The time specification in cron syntax. Only the 5 part syntax is supported, not the symbolic names. Example: 0 0 * * * runs at midnight.\nAn optional 6th part specifies seconds. The optional 7th part specifies a jitter in seconds. This delays the trigger randomly, limited by the specified value. Example 0 0 * * * * 60 runs at midnight or randomly up to 60 seconds later. The jitter is applied individually to each project-branch combination. While the jitter is initialized to a random value, the same value will often be used for a given project-branch combination (in other words, it is not guaranteed to vary from one run of the timer trigger to the next)."
                     }
                 }
             }
