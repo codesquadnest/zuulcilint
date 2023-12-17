@@ -7,6 +7,7 @@ import argparse
 import importlib.metadata
 import pathlib
 import sys
+from collections import defaultdict
 
 import yaml
 from jsonschema import Draft201909Validator
@@ -82,21 +83,13 @@ def lint_playbook_paths(zuul_yaml_files: list[pathlib.Path]) -> list[str]:
 
 
 def get_all_zuul_yaml_files(files: list[str]) -> list[pathlib.Path]:
-    """Get all Zuul YAML files from the specified file(s) or path(s)."""
-    zuul_yaml_files = []
-    for file_path in files:
-        zuul_yaml_files.extend(zuul_utils.get_zuul_yaml_files(pathlib.Path(file_path)))
+    """Get all Zuul YAML files(this includes both .yaml and .yml)."""
+    zuul_yaml_files = defaultdict(list)
+    for f in files:
+        for k, v in zuul_utils.get_zuul_yaml_files(pathlib.Path(f)).items():
+            zuul_yaml_files[k].extend(v)
+
     return zuul_yaml_files
-
-
-def get_suspect_files(files: list[str]) -> list[str]:
-    """Get all suspect files from the specified file(s) or path(s)."""
-    files_with_extension = []
-    for file_path in files:
-        files_with_extension.extend(
-            zuul_utils.get_files_with_extension(pathlib.Path(file_path), "yml"),
-        )
-    return files_with_extension
 
 
 def get_all_jobs(zuul_yaml_files: list[pathlib.Path]) -> list[list[str]]:
@@ -108,16 +101,16 @@ def get_all_jobs(zuul_yaml_files: list[pathlib.Path]) -> list[list[str]]:
     return all_jobs
 
 
-def print_warnings(suspect_yml_files: list[str], repeated_jobs: set[str]) -> None:
+def print_warnings(bad_yml_files: list[str], repeated_jobs: set[str]) -> None:
     """Print warnings."""
-    nr_warnings = len(suspect_yml_files) + len(repeated_jobs)
+    nr_warnings = len(bad_yml_files) + len(repeated_jobs)
     print(f"Total warnings: {nr_warnings}")
-    if suspect_yml_files:
+    if bad_yml_files:
         zuul_utils.print_bold(
-            f"Found {len(suspect_yml_files)} files with 'yml' extension",
+            f"Found {len(bad_yml_files)} files with 'yml' extension",
             None,
         )
-        for file_path in suspect_yml_files:
+        for file_path in bad_yml_files:
             print(f"  {file_path}")
     if repeated_jobs:
         zuul_utils.print_bold(f"Found {len(repeated_jobs)} repeated jobs", None)
@@ -171,9 +164,10 @@ def main():
 
     args = parser.parse_args()
     schema = zuul_utils.get_zuul_schema(schema_file=args.schema)
-    zuul_yaml_files = get_all_zuul_yaml_files(args.file)
+    all_zuul_yaml_files = get_all_zuul_yaml_files(args.file)
+    zuul_good_yaml = all_zuul_yaml_files["good_yaml"]
+    zuul_bad_yaml = all_zuul_yaml_files["bad_yaml"]
     invalid_playbook_paths = []
-    suspect_yml_files = get_suspect_files(args.file)
 
     # Initialize results dictionary
     results = {
@@ -182,20 +176,20 @@ def main():
     }
 
     # Lint all Zuul YAML files
-    results["errors"]["yaml"] = lint_all_yaml_files(zuul_yaml_files, schema)
-    results["warnings"]["file_extension"] = len(suspect_yml_files)
+    results["errors"]["yaml"] = lint_all_yaml_files(zuul_good_yaml, schema)
+    results["warnings"]["file_extension"] = len(zuul_good_yaml)
 
     # Check playbook paths if specified
     if args.check_playbook_paths:
         zuul_utils.print_bold("Checking playbook paths", "info")
-        invalid_playbook_paths = lint_playbook_paths(zuul_yaml_files)
+        invalid_playbook_paths = lint_playbook_paths(zuul_good_yaml)
         results["errors"]["playbook_paths"] = len(invalid_playbook_paths)
         for path in invalid_playbook_paths:
             print(f"  {path}")
 
     # Check repeated jobs
     zuul_utils.print_bold("Checking repeated jobs", "info")
-    repeated_jobs = zuul_checker.check_repeated_jobs(get_all_jobs(zuul_yaml_files))
+    repeated_jobs = zuul_checker.check_repeated_jobs(get_all_jobs(zuul_good_yaml))
     if repeated_jobs:
         for job in repeated_jobs:
             print(f"  {job}")
@@ -205,7 +199,7 @@ def main():
 
     # Print warnings
     zuul_utils.print_bold("Warnings", "warning")
-    print_warnings(suspect_yml_files, repeated_jobs)
+    print_warnings(zuul_bad_yaml, repeated_jobs)
 
     # Print results
     if results["errors"]["yaml"] or results["errors"]["playbook_paths"]:
