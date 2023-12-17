@@ -32,7 +32,7 @@ def check_job_playbook_paths(
     return invalid_paths
 
 
-def check_repeated_jobs(
+def check_duplicated_jobs(
     jobs: list[list[dict[str, str] | None]],
 ) -> set[dict[str, str] | None]:
     """Check that all jobs are unique in different Zuul YAML files.
@@ -43,18 +43,18 @@ def check_repeated_jobs(
 
     Returns:
     -------
-        A set of repeated jobs.
+        A set of duplicated jobs.
     """
     seen_items = set()
-    repeated_items = set()
+    duplicated_items = set()
     unique_items = set()
 
     for sublist in jobs:
         sublist_set = set(sublist)
         for job in sublist_set:
             if job in seen_items:
-                repeated_items.add(job)
+                duplicated_items.add(job)
             seen_items.add(job)
         unique_items.update(sublist_set)
 
-    return repeated_items
+    return duplicated_items

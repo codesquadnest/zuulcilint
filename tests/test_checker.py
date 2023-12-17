@@ -44,8 +44,8 @@ def test_check_job_playbook_paths():
     ]
 
 
-def test_check_repeated_jobs():
-    """Test that check_repeated_jobs() returns a set of repeated jobs."""
+def test_check_duplicated_jobs():
+    """Test that duplicated_jobs() returns a set of repeated jobs."""
     jobs = [
         [
             {"job": {"name": "test-job"}},
@@ -58,4 +58,4 @@ def test_check_repeated_jobs():
 
     jobs = [[job.get("job").get("name") for job in sublist] for sublist in jobs]
 
-    assert zuulcilint_checker.check_repeated_jobs(jobs) == {("test-job")}
+    assert zuulcilint_checker.check_duplicated_jobs(jobs) == {("test-job")}

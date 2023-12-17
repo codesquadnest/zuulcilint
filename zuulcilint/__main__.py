@@ -83,11 +83,11 @@ def lint_playbook_paths(zuul_yaml_files: list[pathlib.Path]) -> list[str]:
 
 
 def get_all_zuul_yaml_files(files: list[str]) -> list[pathlib.Path]:
-    """Get all Zuul YAML files(this includes both .yaml and .yml)."""
+    """Get all Zuul YAML/YML files from the specified file(s) or path(s)."""
     zuul_yaml_files = defaultdict(list)
-    for f in files:
-        for k, v in zuul_utils.get_zuul_yaml_files(pathlib.Path(f)).items():
-            zuul_yaml_files[k].extend(v)
+    for file in files:
+        for file_type, paths in zuul_utils.get_zuul_yaml_files(pathlib.Path(file)).items():
+            zuul_yaml_files[file_type].extend(paths)
 
     return zuul_yaml_files
 
@@ -101,9 +101,9 @@ def get_all_jobs(zuul_yaml_files: list[pathlib.Path]) -> list[list[str]]:
     return all_jobs
 
 
-def print_warnings(bad_yml_files: list[str], repeated_jobs: set[str]) -> None:
+def print_warnings(bad_yml_files: list[str], duplicated_jobs: set[str]) -> None:
     """Print warnings."""
-    nr_warnings = len(bad_yml_files) + len(repeated_jobs)
+    nr_warnings = len(bad_yml_files) + len(duplicated_jobs)
     print(f"Total warnings: {nr_warnings}")
     if bad_yml_files:
         zuul_utils.print_bold(
@@ -112,9 +112,9 @@ def print_warnings(bad_yml_files: list[str], repeated_jobs: set[str]) -> None:
         )
         for file_path in bad_yml_files:
             print(f"  {file_path}")
-    if repeated_jobs:
-        zuul_utils.print_bold(f"Found {len(repeated_jobs)} repeated jobs", None)
-        for job in repeated_jobs:
+    if duplicated_jobs:
+        zuul_utils.print_bold(f"Found {len(duplicated_jobs)} duplicate jobs", None)
+        for job in duplicated_jobs:
             print(f"  {job}")
 
 
@@ -172,7 +172,7 @@ def main():
     # Initialize results dictionary
     results = {
         "errors": {"yaml": 0, "playbook_paths": 0},
-        "warnings": {"file_extension": 0, "repeated_jobs": 0},
+        "warnings": {"file_extension": 0, "duplicated_jobs": 0},
     }
 
     # Lint all Zuul YAML files
@@ -187,19 +187,19 @@ def main():
         for path in invalid_playbook_paths:
             print(f"  {path}")
 
-    # Check repeated jobs
-    zuul_utils.print_bold("Checking repeated jobs", "info")
-    repeated_jobs = zuul_checker.check_repeated_jobs(get_all_jobs(zuul_good_yaml))
-    if repeated_jobs:
-        for job in repeated_jobs:
+    # Check duplicated jobs
+    zuul_utils.print_bold("Checking for duplicate jobs", "info")
+    duplicated_jobs = zuul_checker.check_duplicated_jobs(get_all_jobs(zuul_good_yaml))
+    if duplicated_jobs:
+        for job in duplicated_jobs:
             print(f"  {job}")
     else:
-        print("  No repeated jobs found")
-    results["warnings"]["repeated_jobs"] = len(repeated_jobs)
+        print("  No duplicate jobs found")
+    results["warnings"]["duplicated_jobs"] = len(duplicated_jobs)
 
     # Print warnings
     zuul_utils.print_bold("Warnings", "warning")
-    print_warnings(zuul_bad_yaml, repeated_jobs)
+    print_warnings(zuul_bad_yaml, duplicated_jobs)
 
     # Print results
     if results["errors"]["yaml"] or results["errors"]["playbook_paths"]:

@@ -57,8 +57,8 @@ def get_zuul_yaml_files(path: pathlib.Path) -> dict[str, list[pathlib.Path]]:
                 pass
     elif(path.is_dir()):
         for p in path.iterdir():
-            for yaml_file, yaml_file_path in get_zuul_yaml_files(p).items():
-                zuul_yaml_files[yaml_file].extend(yaml_file_path)
+            for file_type, yaml_file_path in get_zuul_yaml_files(p).items():
+                zuul_yaml_files[file_type].extend(yaml_file_path)
 
     else:
         print(f"Skipping {path}")
