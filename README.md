@@ -41,7 +41,7 @@ To ease editing Zuul CI configuration file we added experimental support for
 a Zuul JSON Schema. This should enable validation and auto-completion in
 code editors.
 
-For example on [VSCode](1) you can use the [YAML](2) extension to use such a schema
+For example on [VSCode](https://code.visualstudio.com) you can use the [YAML](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) extension to use such a schema
 validation by adding the following to `.vscode/settings.json`:
 
 
@@ -61,6 +61,3 @@ validation by adding the following to `.vscode/settings.json`:
 "sortJSON.orderUnderride": ["definitions"]
 
 ```
-
-[1]: https://code.visualstudio.com/
-[2]: https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml
