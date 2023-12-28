@@ -103,11 +103,11 @@ def get_all_jobs(zuul_yaml_files: list[pathlib.Path]) -> list[list[str]]:
 
 def print_warnings(bad_yml_files: list[str], duplicated_jobs: set[str]) -> None:
     """Print warnings."""
-    nr_warnings = len(bad_yml_files) + len(duplicated_jobs)
-    print(f"Total warnings: {nr_warnings}")
+    n_bad = len(bad_yml_files); n_dupe = len(duplicated_jobs)
+    print(f"Total warnings: {n_bad + n_dupe}")
     if bad_yml_files:
         zuul_utils.print_bold(
-            f"Found {len(bad_yml_files)} files with 'yml' extension",
+            f"Found {n_bad} files with 'yml' extension",
             None,
         )
         for file_path in bad_yml_files:
@@ -120,17 +120,18 @@ def print_warnings(bad_yml_files: list[str], duplicated_jobs: set[str]) -> None:
 
 def print_results(
     errors: dict,
-    invalid_playbook_paths: list[str],
+    invalid_playbook_paths: list[str]=None,
+    bad_yaml_files=None,
+    duplicated_jobs=None
 ) -> None:
     """Print the linting results."""
     nr_errors = errors["yaml"] + errors["playbook_paths"]
-    print(f"Total errors: {nr_errors}")
-    print(f"YAML errors: {errors['yaml']}")
-    print(f"Playbook path errors: {errors['playbook_paths']}")
+    print(f"Total errors: {nr_errors}\nYAML errors: {errors['yaml']}")
     if invalid_playbook_paths:
-        print("Invalid playbook paths:")
+        print(f"Playbook path errors: {errors['playbook_paths']}\nInvalid playbook paths:")
         for path in invalid_playbook_paths:
             print(f"  {path}")
+    #Call print_warnings with severity of error
     sys.exit(1)
 
 
@@ -161,6 +162,13 @@ def main():
         default=pathlib.Path(__file__).parent / "zuul-schema.json",
         type=pathlib.Path,
     )
+    parser.add_argument("--ignore-warnings",
+                        "-i",
+                        help="Ignore warnings",
+                        action="store_true",)
+    parser.add_argument("--warnings-as-errors",
+                        help="Handle warnings as errors",
+                        action="store_true",)
 
     args = parser.parse_args()
     schema = zuul_utils.get_zuul_schema(schema_file=args.schema)
@@ -177,7 +185,7 @@ def main():
 
     # Lint all Zuul YAML files
     results["errors"]["yaml"] = lint_all_yaml_files(zuul_good_yaml, schema)
-    results["warnings"]["file_extension"] = len(zuul_good_yaml)
+    results["warnings"]["file_extension"] = len(zuul_bad_yaml)
 
     # Check playbook paths if specified
     if args.check_playbook_paths:
@@ -198,8 +206,9 @@ def main():
     results["warnings"]["duplicated_jobs"] = len(duplicated_jobs)
 
     # Print warnings
-    zuul_utils.print_bold("Warnings", "warning")
-    print_warnings(zuul_bad_yaml, duplicated_jobs)
+    if not args.ignore_warnings and not args.warnings_as_errors:
+        zuul_utils.print_bold("Warnings", "warning")
+        print_warnings(zuul_bad_yaml, duplicated_jobs)
 
     # Print results
     if results["errors"]["yaml"] or results["errors"]["playbook_paths"]:
