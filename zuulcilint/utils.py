@@ -48,13 +48,10 @@ def get_zuul_yaml_files(path: pathlib.Path) -> dict[str, list[pathlib.Path]]:
     zuul_yaml_files = defaultdict(list)
 
     if(path.is_file()):
-        match path.suffix:
-            case ".yaml":
-                zuul_yaml_files["good_yaml"].append(path)
-            case ".yml":
-                zuul_yaml_files["bad_yaml"].append(path)
-            case _:
-                pass
+        if path.suffix == ".yaml":
+            zuul_yaml_files["good_yaml"].append(path)
+        elif path.suffix == ".yml":
+            zuul_yaml_files["bad_yaml"].append(path)
     elif(path.is_dir()):
         for p in path.iterdir():
             for file_type, yaml_file_path in get_zuul_yaml_files(p).items():
