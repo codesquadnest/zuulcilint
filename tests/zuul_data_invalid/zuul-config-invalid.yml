@@ -1,0 +1,6 @@
+---
+- jobs:  # must fail as correct is 'job'
+    name: foo
+- job:
+    roles:
+      - install-docker  # should be "zuul: install-docker"
