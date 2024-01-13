@@ -6,8 +6,31 @@ import json
 import pathlib
 import sys
 from collections import defaultdict
+from enum import Enum
 
 import yaml
+
+
+class MsgSeverity(Enum):
+
+    """Enum for message severity."""
+
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+    SUCCESS = "success"
+
+
+class MsgTypeColor(Enum):
+
+    """Enum for message type colors."""
+
+    ERROR = "\33[1;49;31m"
+    WARNING = "\33[1;49;33m"
+    INFO = "\33[1;49;34m"
+    SUCCESS = "\33[1;49;32m"
+    DEFAULT = "\33[1;49;37m"
+    RESET = "\33[0m"
 
 
 def get_zuul_schema(schema_file: str) -> dict:
@@ -47,12 +70,12 @@ def get_zuul_yaml_files(path: pathlib.Path) -> dict[str, list[pathlib.Path]]:
     """
     zuul_yaml_files = defaultdict(list)
 
-    if(path.is_file()):
+    if path.is_file():
         if path.suffix == ".yaml":
             zuul_yaml_files["good_yaml"].append(path)
         elif path.suffix == ".yml":
             zuul_yaml_files["bad_yaml"].append(path)
-    elif(path.is_dir()):
+    elif path.is_dir():
         for p in path.iterdir():
             for file_type, yaml_file_path in get_zuul_yaml_files(p).items():
                 zuul_yaml_files[file_type].extend(yaml_file_path)
@@ -144,7 +167,7 @@ def encrypted_pkcs1_oaep_constructor(loader: str, node: str) -> str:
     )
 
 
-def print_bold(msg: str, msg_type: str) -> None:
+def print_bold(msg: str, msg_type: MsgSeverity) -> None:
     """Print a bold message.
 
     Args:
@@ -156,13 +179,13 @@ def print_bold(msg: str, msg_type: str) -> None:
     -------
         None.
     """
-    if msg_type == "error":
-        print(f"\n\33[1;49;31m{msg}\33[0m", file=sys.stderr)
-    elif msg_type == "warning":
-        print(f"\n\33[1;49;33m{msg}\33[0m")
-    elif msg_type == "info":
-        print(f"\n\33[1;49;34m{msg}\33[0m")
-    elif msg_type == "success":
-        print(f"\n\33[1;49;32m{msg}\33[0m")
+    if msg_type == MsgSeverity.ERROR:
+        print(f"\n{MsgTypeColor.ERROR.value}{msg}{MsgTypeColor.RESET.value}", file=sys.stderr)
+    elif msg_type == MsgSeverity.WARNING:
+        print(f"\n{MsgTypeColor.WARNING.value}{msg}{MsgTypeColor.RESET.value}")
+    elif msg_type == MsgSeverity.INFO:
+        print(f"\n{MsgTypeColor.INFO.value}{msg}{MsgTypeColor.RESET.value}")
+    elif msg_type == MsgSeverity.SUCCESS:
+        print(f"\n{MsgTypeColor.SUCCESS.value}{msg}{MsgTypeColor.RESET.value}")
     else:
-        print(f"\33[1;49;37m{msg}\33[0m")
+        print(f"{MsgTypeColor.DEFAULT.value}{msg}{MsgTypeColor.RESET.value}")
