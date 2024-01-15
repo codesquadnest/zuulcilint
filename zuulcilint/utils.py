@@ -33,6 +33,21 @@ class MsgTypeColor(Enum):
     RESET = "\33[0m"
 
 
+class ZuulObject(Enum):
+
+    """Enum representing Zuul objects."""
+
+    JOB = "job"
+    NODESET = "nodeset"
+    PIPELINE = "pipeline"
+    PRAGMA = "pragma"
+    PROJECT = "project"
+    QUEUE = "queue"
+    SECRET = "secret" # noqa: S105
+    SEMAPHORE = "semaphore"
+    TEMPLATE = "project-template"
+
+
 def get_zuul_schema(schema_file: str) -> dict:
     """Load the Zuul schema from a JSON file.
 
@@ -86,20 +101,23 @@ def get_zuul_yaml_files(path: pathlib.Path) -> dict[str, list[pathlib.Path]]:
     return zuul_yaml_files
 
 
-def get_jobs_from_zuul_yaml(zuul_yaml_file: str) -> list[dict[str, str] | None]:
-    """Retrieve a list of Zuul jobs from the specified YAML file.
+def get_zuul_object_from_yaml(
+    obj_type: ZuulObject, zuul_yaml_file: str,
+) -> list[dict[str, str] | None]:
+    """Retrieve a list of Zuul objects from the specified YAML file.
 
     Args:
     ----
-        zuul_yaml_file: The path to the YAML file to search for Zuul jobs.
+        obj_type: The type of object to search for.
+        zuul_yaml_file: The path to the YAML file to search for Zuul objects.
 
     Returns:
     -------
-        A list of dictionaries representing the Zuul jobs found.
+        A list of dictionaries representing the Zuul objects found.
     """
     try:
         with pathlib.Path.open(zuul_yaml_file, encoding="utf-8") as f:
-            return [job for job in yaml.safe_load(f) if job.get("job")]
+            return [obj for obj in yaml.safe_load(f) if obj.get(obj_type.value)]
     except FileNotFoundError:
         print(f"Zuul YAML file not found: {zuul_yaml_file}", file=sys.stderr)
         sys.exit(1)

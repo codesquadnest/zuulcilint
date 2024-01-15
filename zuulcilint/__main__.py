@@ -14,7 +14,7 @@ from jsonschema import Draft201909Validator
 
 import zuulcilint.checker as zuul_checker
 import zuulcilint.utils as zuul_utils
-from zuulcilint.utils import MsgSeverity
+from zuulcilint.utils import MsgSeverity, ZuulObject
 
 # Register custom yaml constructor for "encrypted/pkcs1-oaep"
 yaml.SafeLoader.add_constructor(
@@ -75,10 +75,10 @@ def lint_playbook_paths(zuul_yaml_files: list[pathlib.Path]) -> list[str]:
     """Lint playbook paths in all Zuul YAML files."""
     invalid_paths = []
     for file_path in zuul_yaml_files:
-        jobs = zuul_utils.get_jobs_from_zuul_yaml(file_path)
+        jobs = zuul_utils.get_zuul_object_from_yaml(ZuulObject.JOB, file_path)
         for job in jobs:
             invalid_paths.extend(
-                zuul_checker.check_job_playbook_paths(job.get("job", {})),
+                zuul_checker.check_job_playbook_paths(job.get(ZuulObject.JOB.value, {})),
             )
     return invalid_paths
 
@@ -97,8 +97,8 @@ def get_all_jobs(zuul_yaml_files: list[pathlib.Path]) -> list[list[str]]:
     """Get all jobs from Zuul YAML files."""
     all_jobs = []
     for file_path in zuul_yaml_files:
-        jobs = zuul_utils.get_jobs_from_zuul_yaml(file_path)
-        all_jobs.append([job.get("job", {}).get("name") for job in jobs])
+        jobs = zuul_utils.get_zuul_object_from_yaml(ZuulObject.JOB, file_path)
+        all_jobs.append([job.get(ZuulObject.JOB.value, {}).get("name") for job in jobs])
     return all_jobs
 
 
