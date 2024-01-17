@@ -18,7 +18,7 @@ def test_invalid():
     try:
         subprocess.check_call(
             [
-                "python",
+                "python3",
                 "-m",
                 "zuulcilint",
                 "tests/zuul_data_invalid/zuul-config-invalid.yaml",
@@ -40,7 +40,7 @@ def test_valid():
     """
     try:
         subprocess.call(
-            ["python", "zuulcilint", "-m", "tests/zuul_data"],
+            ["python3", "zuulcilint", "-m", "tests/zuul_data"],
         )
     except subprocess.CalledProcessError as e:
         pytest.fail(e)

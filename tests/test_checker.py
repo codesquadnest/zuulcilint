@@ -9,6 +9,7 @@ import tempfile
 
 import zuulcilint.checker as zuulcilint_checker
 import zuulcilint.utils as zuulcilint_utils
+from zuulcilint.utils import ZuulObject
 
 
 def setup_zuul_job_yaml():
@@ -35,9 +36,9 @@ def setup_zuul_job_yaml():
 def test_check_job_playbook_paths():
     """Test that check_job_playbook_paths() returns a list of invalid paths."""
     tmp_path = setup_zuul_job_yaml()
-    jobs = zuulcilint_utils.get_jobs_from_zuul_yaml(tmp_path / "job.yaml")
+    jobs = zuulcilint_utils.get_zuul_object_from_yaml(ZuulObject.JOB, tmp_path / "job.yaml")
 
-    assert zuulcilint_checker.check_job_playbook_paths(jobs[0].get("job")) == [
+    assert zuulcilint_checker.check_job_playbook_paths(jobs[0].get(ZuulObject.JOB.value)) == [
         "playbooks/pre-run.yaml",
         "playbooks/run.yaml",
         "playbooks/post-run.yaml",
@@ -56,6 +57,6 @@ def test_check_duplicated_jobs():
         ],
     ]
 
-    jobs = [[job.get("job").get("name") for job in sublist] for sublist in jobs]
+    jobs = [[job.get(ZuulObject.JOB.value).get("name") for job in sublist] for sublist in jobs]
 
     assert zuulcilint_checker.check_duplicated_jobs(jobs) == {("test-job")}
