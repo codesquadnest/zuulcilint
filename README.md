@@ -9,7 +9,7 @@
 ```
 pip install zuulcilint
 
-usage: zuulcilint [-h] [--version] [--check-playbook-paths] [--schema SCHEMA] file [file ...]
+usage: zuulcilint [-h] [--version] [--check-playbook-paths] [--schema SCHEMA] [--ignore-warnings] [--warnings-as-errors] file [file ...]
 
 positional arguments:
   file                  file(s) or paths to lint
@@ -21,6 +21,9 @@ options:
                         check that playbook paths are valid
   --schema SCHEMA, -s SCHEMA
                         path to Zuul schema file
+  --ignore-warnings, -i
+                        ignore warnings
+  --warnings-as-errors  handle warnings as errors
 ```
 
 ## Validate with pre-commit
