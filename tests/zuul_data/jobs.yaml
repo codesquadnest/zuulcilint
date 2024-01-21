@@ -72,3 +72,14 @@
     name: foo
     parent: base
     dependencies: bar
+
+- job:
+    name: run-type-semaphores
+    parent: base
+    run:
+      - name: playbooks/run-type-semaphores/run.yaml
+        semaphores: semaphore-foo
+      - name: playbooks/run-type-semaphores/run-2.yaml
+        semaphores:
+          - semaphore-bar
+      - playbooks/run-type-semaphores/run-3.yaml
