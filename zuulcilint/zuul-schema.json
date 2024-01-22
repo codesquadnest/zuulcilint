@@ -1,8 +1,8 @@
 {
-    "title": "JSON/YAML schema for Zuul CI job configuration files",
+    "title": "JSON/YAML schema for Zuul CI 9.3.0 configuration files",
     "description": "Used for quick validation of Zuul CI job configuration files.",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "version": "1.0",
+    "version": "1.0.1",
     "type": "array",
     "additionalProperties": false,
     "items": {
