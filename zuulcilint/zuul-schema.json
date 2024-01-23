@@ -1,8 +1,8 @@
 {
-    "title": "JSON/YAML schema for Zuul CI job configuration files",
+    "title": "JSON/YAML schema for Zuul CI 9.3.0 configuration files",
     "description": "Used for quick validation of Zuul CI job configuration files.",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "version": 1.0,
+    "version": "1.0.1",
     "type": "array",
     "additionalProperties": false,
     "items": {
@@ -1173,24 +1173,38 @@
             },
             "required": ["name"]
         },
+        "run-type-object": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "title": "job.&lt;run-type&gt;.name",
+                    "type": "string",
+                    "description": "The path to the playbook relative to the root of the repo."
+                },
+                "semaphores": {
+                    "title": "job.&lt;run-type&gt;.semaphores",
+                    "type": ["string", "array"],
+                    "items": { "type": "string" },
+                    "description": "The name of a Semaphore (or list of them) or Global Semaphore which should be acquired and released when the playbook begins and ends. If the semaphore is at maximum capacity, then Zuul will wait until it can be acquired before starting the playbook. The format is either a string, or a list of strings.\nIf multiple semaphores are requested, the playbook will not start until all have been acquired, and Zuul will wait until all are available before acquiring any. The time spent waiting for run playbook semaphores is counted against the job.timeout.\nNone of the semaphores specified for a playbook may also be specified in the same job."
+                }
+            }
+        },
         "run-type": {
-            "oneOf": [
-                { "type": ["string", "array"] },
+            "anyOf": [
+                { "type": "string" },
                 {
-                    "type": "object",
-                    "properties": {
-                        "name": { "type": "string" },
-                        "semaphore": {
-                            "type": ["string", "array"],
-                            "items": { "type": "string" }
-                        }
-                    }
+                    "$ref": "#/definitions/run-type-object"
                 },
                 {
                     "type": "array",
                     "items": {
-                        "type": ["string", "object"],
-                        "$ref": "#/definitions/run-type/oneOf/1"
+                        "anyOf": [
+                            { "type": "string" },
+                            {
+                                "$ref": "#/definitions/run-type-object"
+                            }
+                        ]
                     }
                 }
             ]
