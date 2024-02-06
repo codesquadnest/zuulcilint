@@ -124,6 +124,9 @@ def get_zuul_object_from_yaml(
     except yaml.YAMLError:
         print(f"Invalid YAML in Zuul YAML file: {zuul_yaml_file}", file=sys.stderr)
         sys.exit(1)
+    except AttributeError:
+        print(f"Invalid Zuul YAML file detected: {obj_type}", file=sys.stderr)
+        sys.exit(1)
 
 
 def get_playbook_paths_from_job(job: dict[str, str] | None) -> list[str | None]:

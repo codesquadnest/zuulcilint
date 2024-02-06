@@ -32,7 +32,7 @@ Add the code below to your `.pre-commit-config.yaml` file:
 
 ```yaml
   - repo: https://github.com/codesquadnest/zuulcilint.git
-    rev: "1.0"
+    rev: "0.2.5"
     hooks:
       - id: zuulcilint
 ```

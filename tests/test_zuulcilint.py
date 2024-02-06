@@ -40,7 +40,7 @@ def test_valid():
     """
     try:
         subprocess.call(
-            ["python3", "zuulcilint", "-m", "tests/zuul_data"],
+            ["python3", "zuulcilint", "tests/zuul_data"],
         )
     except subprocess.CalledProcessError as e:
         pytest.fail(e)

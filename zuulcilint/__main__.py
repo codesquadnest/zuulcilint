@@ -62,17 +62,46 @@ def lint(file_path: str, schema: dict) -> int:
 
 
 def lint_single_yaml_file(file_path: pathlib.Path, schema: dict) -> int:
-    """Lint a single Zuul YAML file."""
+    """Lint a single Zuul YAML file.
+
+    Args:
+    ----
+        file_path: A string representing the path to the YAML file to validate.
+        schema: A JSON schema to validate against.
+
+    Returns:
+    -------
+        The number of validation errors encountered.
+    """
     return lint(file_path, schema=schema)
 
 
 def lint_all_yaml_files(file_paths: list[pathlib.Path], schema: dict) -> int:
-    """Lint all Zuul YAML files."""
+    """Lint all Zuul YAML files.
+
+    Args:
+    ----
+        file_paths: A list of strings representing the paths to the YAML files to validate.
+        schema: A JSON schema to validate against.
+
+    Returns:
+    -------
+        The number of validation errors encountered.
+    """
     return sum(lint_single_yaml_file(file_path, schema) for file_path in file_paths)
 
 
 def lint_playbook_paths(zuul_yaml_files: list[pathlib.Path]) -> list[str]:
-    """Lint playbook paths in all Zuul YAML files."""
+    """Lint playbook paths in all Zuul YAML files.
+
+    Args:
+    ----
+        zuul_yaml_files: A list of Zuul YAML files.
+
+    Returns:
+    -------
+        A list of invalid playbook paths.
+    """
     invalid_paths = []
     for file_path in zuul_yaml_files:
         jobs = zuul_utils.get_zuul_object_from_yaml(ZuulObject.JOB, file_path)
@@ -84,7 +113,16 @@ def lint_playbook_paths(zuul_yaml_files: list[pathlib.Path]) -> list[str]:
 
 
 def get_all_zuul_yaml_files(files: list[str]) -> list[pathlib.Path]:
-    """Get all Zuul YAML/YML files from the specified file(s) or path(s)."""
+    """Get all Zuul YAML/YML files from the specified file(s) or path(s).
+
+    Args:
+    ----
+        files: A list of strings representing the file(s) or path(s) to lint.
+
+    Returns:
+    -------
+        A list of Zuul YAML/YML files.
+    """
     zuul_yaml_files = defaultdict(list)
     for file in files:
         for file_type, paths in zuul_utils.get_zuul_yaml_files(pathlib.Path(file)).items():
@@ -93,57 +131,98 @@ def get_all_zuul_yaml_files(files: list[str]) -> list[pathlib.Path]:
     return zuul_yaml_files
 
 
-def get_all_jobs(zuul_yaml_files: list[pathlib.Path]) -> list[list[str]]:
-    """Get all jobs from Zuul YAML files."""
-    all_jobs = []
+def get_all_zuul_objects_by_type(
+    zuul_yaml_files: list[pathlib.Path],
+    zuul_obj: ZuulObject,
+) -> list[dict | None]:
+    """Get all Zuul objects from provided Zuul YAML files.
+
+    Args:
+    ----
+        zuul_yaml_files: A list of Zuul YAML files.
+        zuul_obj: A ZuulObject enum.
+
+    Returns:
+    -------
+        A list of Zuul objects.
+    """
+    all_zuul_objects = []
     for file_path in zuul_yaml_files:
-        jobs = zuul_utils.get_zuul_object_from_yaml(ZuulObject.JOB, file_path)
-        all_jobs.append([job.get(ZuulObject.JOB.value, {}).get("name") for job in jobs])
-    return all_jobs
+        zuul_objects = zuul_utils.get_zuul_object_from_yaml(zuul_obj, file_path)
+        all_zuul_objects.extend(zuul_objects)
+    return all_zuul_objects
 
 
 def print_warnings(
-    bad_yml_files: list[str],
-    duplicated_jobs: set[str],
+    warnings: dict,
     severity: MsgSeverity = MsgSeverity.WARNING,
 ) -> None:
-    """Print warnings."""
-    n_bad = len(bad_yml_files)
-    n_dup = len(duplicated_jobs)
+    """Print warnings.
 
-    if n_bad == 0 and n_dup == 0:
+    Args:
+    ----
+        warnings: A dictionary containing warnings.
+        severity: A MsgSeverity enum.
+
+    Returns:
+    -------
+        None.
+    """
+    n_bad_yaml = len(warnings["warnings"]["bad_yaml_files"])
+    n_duplicate = len(warnings["warnings"]["duplicated_jobs"])
+    n_nodeset = len(warnings["warnings"]["inexistent_nodesets"])
+
+    if n_bad_yaml == 0 and n_duplicate == 0 and n_nodeset == 0:
         return
 
     if severity == MsgSeverity.WARNING:
         zuul_utils.print_bold("Warnings", MsgSeverity.WARNING)
-        print(f"Total {severity.value}s: {n_bad + n_dup}")
+        print(f"Total {severity.value}s: {n_duplicate + n_duplicate + n_nodeset}")
 
-    if bad_yml_files:
+    if n_bad_yaml:
         zuul_utils.print_bold(f"File extension {severity.value}s:", severity)
         zuul_utils.print_bold(
-            f"Found {n_bad} files with 'yml' extension",
+            f"Found {n_bad_yaml} files with 'yml' extension",
             None,
         )
-        for file_path in bad_yml_files:
+        for file_path in warnings["warnings"]["bad_yaml_files"]:
             print(f"{file_path}")
-    if duplicated_jobs:
+    if n_duplicate:
         zuul_utils.print_bold(f"Duplicate job {severity.value}s:", severity)
-        zuul_utils.print_bold(f"Found {n_dup} duplicate jobs", None)
-        for job in duplicated_jobs:
+        zuul_utils.print_bold(f"Found {n_duplicate} duplicate jobs", None)
+        for job in warnings["warnings"]["duplicated_jobs"]:
             print(f"{job}")
+
+    if n_nodeset:
+        zuul_utils.print_bold(f"Inexistent nodeset {severity.value}s:", severity)
+        zuul_utils.print_bold(f"Found {n_nodeset} inexistent nodesets", None)
+        for nodeset in warnings["warnings"]["inexistent_nodesets"]:
+            print(f"{nodeset}")
 
 
 def print_results(
     results: dict,
-    bad_yaml_files: list[pathlib.Path],
-    duplicated_jobs: set[str],
     warnings_as_errors,
     ignore_warnings,
 ) -> None:
-    """Print the linting results."""
+    """Print the linting results.
+
+    Args:
+    ----
+        results: A dictionary containing linting results.
+        warnings_as_errors: A boolean indicating whether to handle warnings as errors.
+        ignore_warnings: A boolean indicating whether to ignore warnings.
+
+    Returns:
+    -------
+        None.
+    """
+    duplicated_jobs = results["warnings"]["duplicated_jobs"]
+    inexistent_nodesets = results["warnings"]["inexistent_nodesets"]
+    bad_yaml_files = results["warnings"]["bad_yaml_files"]
     total_yaml_errors = results["errors"]["yaml"]
     total_playbook_path_errors = results["errors"]["playbook_paths"]
-    total_warnings = results["warnings"]["file_extension"] + results["warnings"]["duplicated_jobs"]
+    total_warnings = len(bad_yaml_files) + len(duplicated_jobs) + len(inexistent_nodesets)
     total_errs = total_yaml_errors + total_playbook_path_errors
     extra_msg = ""
 
@@ -151,12 +230,14 @@ def print_results(
     if warnings_as_errors:
         total_errs += total_warnings
         if bad_yaml_files:
-            extra_msg += f"\nFile extension errors: {results['warnings']['file_extension']}"
+            extra_msg += f"\nFile extension errors: {len(bad_yaml_files)}"
         if duplicated_jobs:
-            extra_msg += f"\nDuplicated jobs errors: {results['warnings']['duplicated_jobs']}"
-        print_warnings(bad_yaml_files, duplicated_jobs, severity=MsgSeverity.ERROR)
+            extra_msg += f"\nDuplicated jobs errors: {len(duplicated_jobs)}"
+        if inexistent_nodesets:
+            extra_msg += f"\nInexistent nodesets errors: {len(inexistent_nodesets)}"
+        print_warnings(warnings=results, severity=MsgSeverity.ERROR)
     elif not ignore_warnings:
-        print_warnings(bad_yaml_files, duplicated_jobs)
+        print_warnings(warnings=results)
 
     if total_errs == 0:
         zuul_utils.print_bold("Passed", MsgSeverity.SUCCESS)
@@ -170,7 +251,7 @@ def print_results(
     if total_playbook_path_errors:
         err_msg += f"\nPlaybook path errors: {total_playbook_path_errors}"
 
-    print(f"{err_msg + extra_msg}")
+    zuul_utils.print_bold(f"{err_msg + extra_msg}", MsgSeverity.ERROR)
     sys.exit(1)
 
 
@@ -222,12 +303,15 @@ def main():
     # Initialize results dictionary
     results = {
         "errors": {"yaml": 0, "playbook_paths": 0},
-        "warnings": {"file_extension": 0, "duplicated_jobs": 0},
+        "warnings": {
+            "duplicated_jobs": [],
+            "inexistent_nodesets": [],
+            "bad_yaml_files": zuul_bad_yaml,
+        },
     }
 
     # Lint all Zuul YAML files
     results["errors"]["yaml"] = lint_all_yaml_files(zuul_good_yaml, schema)
-    results["warnings"]["file_extension"] = len(zuul_bad_yaml)
 
     # Check playbook paths if specified
     if args.check_playbook_paths:
@@ -243,19 +327,35 @@ def main():
 
     # Check duplicated jobs
     zuul_utils.print_bold("Checking for duplicate jobs", MsgSeverity.INFO)
-    duplicated_jobs = zuul_checker.check_duplicated_jobs(get_all_jobs(zuul_good_yaml))
+    jobs_dict = {}
+    for yaml_file in zuul_good_yaml:
+        jobs_dict[yaml_file] = get_all_zuul_objects_by_type([yaml_file], ZuulObject.JOB)
+
+    duplicated_jobs = zuul_checker.check_duplicated_jobs(jobs_dict)
+
     if duplicated_jobs:
         for job in duplicated_jobs:
             print(f"{job}")
     else:
         print("No duplicate jobs found")
-    results["warnings"]["duplicated_jobs"] = len(duplicated_jobs)
+    results["warnings"]["duplicated_jobs"] = duplicated_jobs
+
+    # Check for inexistent nodesets
+    zuul_utils.print_bold("Checking for inexistent nodesets", MsgSeverity.INFO)
+    inexistent_nodesets = zuul_checker.check_inexistent_nodesets(
+        get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.NODESET),
+        get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.JOB),
+    )
+    if inexistent_nodesets:
+        for nodeset in inexistent_nodesets:
+            print(f"{nodeset}")
+    else:
+        print("No inexistent nodesets found")
+    results["warnings"]["inexistent_nodesets"] = inexistent_nodesets
 
     # Print results
     print_results(
         results,
-        zuul_bad_yaml,
-        duplicated_jobs,
         args.warnings_as_errors,
         args.ignore_warnings,
     )
