@@ -3,12 +3,13 @@
 A linter for Zuul configuration files.
 """
 
+from __future__ import annotations
+
 import argparse
 import importlib.metadata
 import pathlib
 import sys
 from collections import defaultdict
-from typing import Dict, List, Union
 
 import yaml
 from jsonschema import Draft201909Validator
@@ -76,7 +77,8 @@ def lint_single_yaml_file(file_path: pathlib.Path, schema: dict) -> int:
     """
     return lint(file_path, schema=schema)
 
-def lint_all_yaml_files(file_paths: List[pathlib.Path], schema: Dict) -> int:
+
+def lint_all_yaml_files(file_paths: list[pathlib.Path], schema: dict) -> int:
     """Lint all Zuul YAML files.
 
     Args:
@@ -91,8 +93,7 @@ def lint_all_yaml_files(file_paths: List[pathlib.Path], schema: Dict) -> int:
     return sum(lint_single_yaml_file(file_path, schema) for file_path in file_paths)
 
 
-
-def lint_playbook_paths(zuul_yaml_files: List[pathlib.Path]) -> List[str]:
+def lint_playbook_paths(zuul_yaml_files: list[pathlib.Path]) -> list[str]:
     """Lint playbook paths in all Zuul YAML files.
 
     Args:
@@ -113,7 +114,7 @@ def lint_playbook_paths(zuul_yaml_files: List[pathlib.Path]) -> List[str]:
     return invalid_paths
 
 
-def get_all_zuul_yaml_files(files: List[str]) -> List[pathlib.Path]:
+def get_all_zuul_yaml_files(files: list[str]) -> list[pathlib.Path]:
     """Get all Zuul YAML/YML files from the specified file(s) or path(s).
 
     Args:
@@ -133,9 +134,9 @@ def get_all_zuul_yaml_files(files: List[str]) -> List[pathlib.Path]:
 
 
 def get_all_zuul_objects_by_type(
-    zuul_yaml_files: List[pathlib.Path],
+    zuul_yaml_files: list[pathlib.Path],
     zuul_obj: ZuulObject,
-) -> List[Union[dict, None]]:
+) -> list[dict]:
     """Get all Zuul objects from provided Zuul YAML files.
 
     Args:
@@ -188,6 +189,7 @@ def print_warnings(
         )
         for file_path in warnings["warnings"]["bad_yaml_files"]:
             print(f"{file_path}")
+
     if n_duplicate:
         zuul_utils.print_bold(f"Duplicate job {severity.value}s:", severity)
         zuul_utils.print_bold(f"Found {n_duplicate} duplicate jobs", None)

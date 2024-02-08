@@ -16,28 +16,51 @@ def test_invalid():
         pytest.fail: If the linter does not fail as expected.
     """
     try:
-        subprocess.check_call(
+        subprocess.run(
             [
                 "python3",
                 "-m",
                 "zuulcilint",
                 "tests/zuul_data_invalid/zuul-config-invalid.yaml",
             ],
+            check=True,
+            capture_output=True,
         )
     except subprocess.CalledProcessError as e:
-        if e.returncode == 1:
-            return
-        pytest.fail(e)
-    pytest.fail("Expected to fail")
+        assert "Validation error:" in e.stderr.decode("utf-8")
 
 
-def test_valid():
-    """Test that the linter does not detect errors in a valid Zuul YAML file.
+def test_warnings():
+    """Test that the linter detects warnings in a valid Zuul YAML file."""
+    result = subprocess.run(
+        ["python3", "-m", "zuulcilint", "tests/zuul_data"],
+        capture_output=True,
+    )
+
+    assert "Found 5 inexistent nodesets" in result.stdout.decode("utf-8")
+    assert "Found 1 duplicate jobs" in result.stdout.decode("utf-8")
+    assert "Found 1 files with 'yml' extension" in result.stdout.decode("utf-8")
+
+
+def test_playbook_errors():
+    """Test that the linter detects errors in a playbook.
 
     Raises
     ------
-    pytest.fail: If the linter fails unexpectedly.
+    pytest.fail: If the linter does not detect errors as expected.
     """
-    subprocess.check_call(
-        ["python3", "zuulcilint", "tests/zuul_data"],
-    )
+    try:
+        result = subprocess.run(
+            [
+                "python3",
+                "-m",
+                "zuulcilint",
+                "--check-playbook-paths",
+                "tests/zuul_data",
+            ],
+            capture_output=True,
+        )
+        assert result.returncode != 0
+        assert "Playbook path errors: 7" in result.stderr.decode("utf-8")
+    except subprocess.CalledProcessError as e:
+        pytest.fail(f"Subprocess call failed with error: {e}")

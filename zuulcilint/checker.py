@@ -6,13 +6,13 @@ import pathlib
 
 
 def check_job_playbook_paths(
-    job: list[dict[str, str | list[str]] | None],
+    job: dict[str, dict | list[str | dict]]
 ) -> list[str]:
     """Check that all playbooks in a job have a valid path.
 
     Args:
     ----
-        job: A list of Zuul jobs.
+        job: A dictionary containing a Zuul job.
 
     Returns:
     -------
@@ -48,7 +48,7 @@ def check_duplicated_jobs(
 
     Args:
     ----
-        jobs: A list of Zuul jobs.
+        jobs: A dictionary containing a list of Zuul jobs.
 
     Returns:
     -------
