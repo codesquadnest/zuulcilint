@@ -8,6 +8,7 @@ import importlib.metadata
 import pathlib
 import sys
 from collections import defaultdict
+from typing import List, Union
 
 import yaml
 from jsonschema import Draft201909Validator
@@ -132,9 +133,9 @@ def get_all_zuul_yaml_files(files: list[str]) -> list[pathlib.Path]:
 
 
 def get_all_zuul_objects_by_type(
-    zuul_yaml_files: list[pathlib.Path],
+    zuul_yaml_files: List[pathlib.Path],
     zuul_obj: ZuulObject,
-) -> list[dict | None]:
+) -> List[Union[dict, None]]:
     """Get all Zuul objects from provided Zuul YAML files.
 
     Args:

@@ -113,7 +113,11 @@ def check_inexistent_nodesets(
         except KeyError:
             continue
         for nodeset in job_nodeset_list:
-            if nodeset["name"] not in nodeset_list:
-                inexistent_nodesets.add(nodeset["name"])
+            try:
+                if nodeset["name"] not in nodeset_list:
+                    inexistent_nodesets.add(nodeset["name"])
+            except TypeError:
+                if job_nodeset_list.get("name", None) and job_nodeset_list.get("name", None) not in nodeset_list:
+                    inexistent_nodesets.add(job_nodeset_list["name"])
 
     return inexistent_nodesets

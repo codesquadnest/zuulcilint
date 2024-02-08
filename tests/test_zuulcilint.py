@@ -38,9 +38,6 @@ def test_valid():
     ------
     pytest.fail: If the linter fails unexpectedly.
     """
-    try:
-        subprocess.call(
-            ["python3", "zuulcilint", "tests/zuul_data"],
-        )
-    except subprocess.CalledProcessError as e:
-        pytest.fail(e)
+    subprocess.check_call(
+        ["python3", "zuulcilint", "tests/zuul_data"],
+    )
