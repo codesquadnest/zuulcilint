@@ -82,6 +82,10 @@
     parent: base
     dependencies: bar
     run: playbooks/base/pre.yaml
+    nodeset:
+      nodes:
+        name: crazy-node
+        label: apinext-ubuntu2204-16-core
 
 - job:
     name: run-type-semaphores
