@@ -20,21 +20,23 @@ def check_job_playbook_paths(
     """
     invalid_paths = []
 
-    for key in ["pre-run", "run", "post-run"]:
+    for key in ["pre-run", "run", "post-run", "cleanup-run"]:
         paths = job.get(key)
-        if isinstance(paths, list):
-            for path in paths:
-                if isinstance(path, str):
-                    if not pathlib.Path(path).exists():
-                        invalid_paths.append(path)
-                if isinstance(path, dict):
-                    for key, val in path.items():
-                        if key == "name":
-                            if not pathlib.Path(val).exists():
-                                invalid_paths.append(val)
-        if isinstance(paths, str):
-            if not pathlib.Path(paths).exists():
-                invalid_paths.append(paths)
+        if paths is None:
+            continue
+
+        # Convert to list if it's a single object
+        if not isinstance(paths, list):
+            paths = [paths]
+
+        for path in paths:
+            if isinstance(path, str):
+                if not pathlib.Path(path).exists():
+                    invalid_paths.append(path)
+            if isinstance(path, dict):
+                if "name" in path:
+                    if not pathlib.Path(path["name"]).exists():
+                        invalid_paths.append(path["name"])
 
     return invalid_paths
 
