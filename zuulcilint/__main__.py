@@ -173,13 +173,14 @@ def print_warnings(
     n_bad_yaml = len(warnings["warnings"]["bad_yaml_files"])
     n_duplicate = len(warnings["warnings"]["duplicated_jobs"])
     n_nodeset = len(warnings["warnings"]["inexistent_nodesets"])
+    n_secret = len(warnings["warnings"]["inexistent_secrets"])
 
-    if n_bad_yaml == 0 and n_duplicate == 0 and n_nodeset == 0:
+    if n_bad_yaml == 0 and n_duplicate == 0 and n_nodeset == 0 and n_secret == 0:
         return
 
     if severity == MsgSeverity.WARNING:
         zuul_utils.print_bold("Warnings", MsgSeverity.WARNING)
-        print(f"Total {severity.value}s: {n_duplicate + n_duplicate + n_nodeset}")
+        print(f"Total {severity.value}s: {n_duplicate + n_duplicate + n_nodeset + n_secret}")
 
     if n_bad_yaml:
         zuul_utils.print_bold(f"File extension {severity.value}s:", severity)
@@ -201,6 +202,12 @@ def print_warnings(
         zuul_utils.print_bold(f"Found {n_nodeset} inexistent nodesets", None)
         for nodeset in warnings["warnings"]["inexistent_nodesets"]:
             print(f"{nodeset}")
+    
+    if n_secret:
+        zuul_utils.print_bold(f"Inexistent secret {severity.value}s:", severity)
+        zuul_utils.print_bold(f"Found {n_secret} inexistent secrets", None)
+        for secret in warnings["warnings"]["inexistent_secrets"]:
+            print(f"{secret}")
 
 
 def print_results(
@@ -222,10 +229,11 @@ def print_results(
     """
     duplicated_jobs = results["warnings"]["duplicated_jobs"]
     inexistent_nodesets = results["warnings"]["inexistent_nodesets"]
+    inexistent_secrets = results["warnings"]["inexistent_secrets"]
     bad_yaml_files = results["warnings"]["bad_yaml_files"]
     total_yaml_errors = results["errors"]["yaml"]
     total_playbook_path_errors = results["errors"]["playbook_paths"]
-    total_warnings = len(bad_yaml_files) + len(duplicated_jobs) + len(inexistent_nodesets)
+    total_warnings = len(bad_yaml_files) + len(duplicated_jobs) + len(inexistent_nodesets) + len(inexistent_secrets)
     total_errs = total_yaml_errors + total_playbook_path_errors
     extra_msg = ""
 
@@ -238,6 +246,8 @@ def print_results(
             extra_msg += f"\nDuplicated jobs errors: {len(duplicated_jobs)}"
         if inexistent_nodesets:
             extra_msg += f"\nInexistent nodesets errors: {len(inexistent_nodesets)}"
+        if inexistent_secrets:
+            extra_msg += f"\nInexistent secretes errors: {len(inexistent_secrets)}"
         print_warnings(warnings=results, severity=MsgSeverity.ERROR)
     elif not ignore_warnings:
         print_warnings(warnings=results)
@@ -309,6 +319,7 @@ def main():
         "warnings": {
             "duplicated_jobs": [],
             "inexistent_nodesets": [],
+            "inexistent_secrets": [],
             "bad_yaml_files": zuul_bad_yaml,
         },
     }
@@ -355,6 +366,19 @@ def main():
     else:
         print("No inexistent nodesets found")
     results["warnings"]["inexistent_nodesets"] = inexistent_nodesets
+
+    # Check for inexistent secretes
+    zuul_utils.print_bold("Checking for inexistent secretes", MsgSeverity.INFO)
+    inexistent_secrets = zuul_checker.check_inexistent_secrets(
+        get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.SECRET),
+        get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.JOB),
+    )
+    if inexistent_secrets:
+        for nodeset in inexistent_secrets:
+            print(f"{nodeset}")
+    else:
+        print("No inexistent nodesets found")
+    results["warnings"]["inexistent_secrets"] = inexistent_secrets
 
     # Print results
     print_results(

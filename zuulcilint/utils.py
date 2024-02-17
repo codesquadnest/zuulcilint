@@ -43,7 +43,7 @@ class ZuulObject(Enum):
     PRAGMA = "pragma"
     PROJECT = "project"
     QUEUE = "queue"
-    SECRET = "secret" # noqa: S105
+    SECRET = "secret"  # noqa: S105
     SEMAPHORE = "semaphore"
     TEMPLATE = "project-template"
 
@@ -102,7 +102,8 @@ def get_zuul_yaml_files(path: pathlib.Path) -> dict[str, list[pathlib.Path]]:
 
 
 def get_zuul_object_from_yaml(
-    obj_type: ZuulObject, zuul_yaml_file: str,
+    obj_type: ZuulObject,
+    zuul_yaml_file: str,
 ) -> list[dict[str, str] | None]:
     """Retrieve a list of Zuul objects from the specified YAML file.
 

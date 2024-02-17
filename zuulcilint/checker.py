@@ -5,9 +5,7 @@ from __future__ import annotations
 import pathlib
 
 
-def check_job_playbook_paths(
-    job: dict[str, dict | list[str | dict]]
-) -> list[str]:
+def check_job_playbook_paths(job: dict[str, dict | list[str | dict]]) -> list[str]:
     """Check that all playbooks in a job have a valid path.
 
     Args:
@@ -117,7 +115,55 @@ def check_inexistent_nodesets(
                 if nodeset["name"] not in nodeset_list:
                     inexistent_nodesets.add(nodeset["name"])
             except TypeError:
-                if job_nodeset_list.get("name", None) and job_nodeset_list.get("name", None) not in nodeset_list:
+                if (
+                    job_nodeset_list.get("name", None)
+                    and job_nodeset_list.get("name", None) not in nodeset_list
+                ):
                     inexistent_nodesets.add(job_nodeset_list["name"])
 
     return inexistent_nodesets
+
+
+def check_inexistent_secrets(
+    secrets: list[dict],
+    jobs: list[dict | None],
+) -> list[dict[str, str]]:
+    """
+    Check that secret used by the existed job.
+
+    Args:
+    ----
+        secrets: A list of secrets.
+        jobs: A list of jobs.
+    Returns:
+    -------
+        A list of inexistent secrets.
+    """
+    inexistent_secrets = set()
+    job_secret = {}
+    job_secrets_list = set()
+    secret = {}
+    secrets_list = set()
+
+    for secret in secrets:
+        secrets_list.add(secret["secret"]["name"])
+
+    for job in jobs:
+        try:
+            if isinstance(job["job"]["secrets"], str):
+                secret["name"] = job["job"]["secrets"]["secret"]
+                job_secrets_list.add(secret)
+        except KeyError:
+            continue
+
+        for job_secret in job_secrets_list:
+            try:
+                if secret["name"] not in secrets_list:
+                    inexistent_secrets.add(secret["name"])
+            except TypeError:
+                if (
+                    job_secrets_list.get("name", None)
+                    and job_secrets_list.get("name", None) not in secrets_list
+                ):
+                    inexistent_secrets.add(job_secrets_list["name"])
+    return inexistent_secrets
