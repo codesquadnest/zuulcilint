@@ -47,16 +47,35 @@ def test_check_job_playbook_paths():
 
 def test_check_duplicated_jobs():
     """Test that duplicated_jobs() returns a set of repeated jobs."""
-    jobs = [
-        [
-            {"job": {"name": "test-job"}},
+    jobs = {
+        pathlib.Path("job1.yaml"): [
+            {"job": {"name": "job1"}},
+            {"job": {"name": "job2"}},
+            {"job": {"name": "job3"}},
         ],
-        [
-            {"job": {"name": "test-job"}},
-            {"job": {"name": "test-job-2"}},
+        pathlib.Path("job2.yaml"): [
+            {"job": {"name": "job1"}},
+            {"job": {"name": "job2"}},
+            {"job": {"name": "job3"}},
         ],
-    ]
+    }
 
-    jobs = [[job.get(ZuulObject.JOB.value).get("name") for job in sublist] for sublist in jobs]
+    assert zuulcilint_checker.check_duplicated_jobs(jobs) == {"job1", "job2", "job3"}
 
-    assert zuulcilint_checker.check_duplicated_jobs(jobs) == {("test-job")}
+
+def test_check_duplicated_jobs_no_duplicates():
+    """Test that duplicated_jobs() returns an empty set when there are no repeated jobs."""
+    jobs = {
+        pathlib.Path("job1.yaml"): [
+            {"job": {"name": "job1"}},
+            {"job": {"name": "job2"}},
+            {"job": {"name": "job3"}},
+        ],
+        pathlib.Path("job2.yaml"): [
+            {"job": {"name": "job4"}},
+            {"job": {"name": "job5"}},
+            {"job": {"name": "job6"}},
+        ],
+    }
+
+    assert not zuulcilint_checker.check_duplicated_jobs(jobs)

@@ -2,7 +2,7 @@
     "title": "JSON/YAML schema for Zuul CI 9.3.0 configuration files",
     "description": "Used for quick validation of Zuul CI job configuration files.",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "type": "array",
     "additionalProperties": false,
     "items": {
@@ -602,31 +602,47 @@
             "$ref": "#/definitions/anonymous-job",
             "required": ["name"]
         },
+        "nodeset-nodes-object": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": ["string", "array"],
+                    "title": "nodeset.nodes.name",
+                    "description": "The name of the node. This will appear in the Ansible inventory for the job.\nThis can also be as a list of strings. If so, then the list of hosts in the Ansible inventory will share a common ansible_host address.",
+                    "items": { "type": "string" }
+                },
+                "label": {
+                    "type": "string",
+                    "title": "nodeset.nodes.label",
+                    "description": "The Nodepool label for the node. Zuul will request a node with this label."
+                }
+            }
+        },
         "anonymous-nodeset": {
             "type": "object",
             "title": "Anonymous Nodeset",
             "description": "A Nodeset is a named collection of nodes for use by a job. Jobs may specify what nodes they require individually, however, by defining groups of node types once and referring to them by name, job configuration may be simplified.\nNodesets, like most configuration items, are unique within a tenant, though a nodeset may be defined on multiple branches of the same project as long as the contents are the same.",
             "properties": {
                 "nodes": {
-                    "type": "array",
-                    "title": "nodeset.nodes",
-                    "description": "A list of node definitions.\r\n\r\nThis attribute is required unless alternatives is supplied.",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": ["string", "array"],
-                                "title": "nodeset.nodes.name",
-                                "description": "The name of the node. This will appear in the Ansible inventory for the job.\nThis can also be as a list of strings. If so, then the list of hosts in the Ansible inventory will share a common ansible_host address.",
-                                "items": { "type": "string" }
-                            },
-                            "label": {
-                                "type": "string",
-                                "title": "nodeset.nodes.label",
-                                "description": "The Nodepool label for the node. Zuul will request a node with this label."
-                            }
+                    "allOf": [
+                        {
+                            "title": "nodeset.nodes",
+                            "description": "A list of node definitions.\r\n\r\nThis attribute is required unless alternatives is supplied."
+                        },
+                        {
+                            "oneOf": [
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/nodeset-nodes-object"
+                                    }
+                                },
+                                {
+                                    "$ref": "#/definitions/nodeset-nodes-object"
+                                }
+                            ]
                         }
-                    }
+                    ]
                 },
                 "groups": {
                     "type": "array",

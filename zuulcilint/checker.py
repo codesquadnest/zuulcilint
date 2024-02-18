@@ -6,13 +6,13 @@ import pathlib
 
 
 def check_job_playbook_paths(
-    job: dict[str, str | list[str] | None],
+    job: dict[str, dict | list[str | dict]]
 ) -> list[str]:
     """Check that all playbooks in a job have a valid path.
 
     Args:
     ----
-        job: A dictionary representing a Zuul job.
+        job: A dictionary containing a Zuul job.
 
     Returns:
     -------
@@ -20,26 +20,35 @@ def check_job_playbook_paths(
     """
     invalid_paths = []
 
-    for key in ["pre-run", "run", "post-run"]:
+    for key in ["pre-run", "run", "post-run", "cleanup-run"]:
         paths = job.get(key)
-        if isinstance(paths, list):
-            invalid_paths.extend(
-                path for path in paths if not pathlib.Path(path).is_file()
-            )
-        elif paths and not pathlib.Path(paths).is_file():
-            invalid_paths.append(paths)
+        if paths is None:
+            continue
+
+        # Convert to list if it's a single object
+        if not isinstance(paths, list):
+            paths = [paths]
+
+        for path in paths:
+            if isinstance(path, str):
+                if not pathlib.Path(path).exists():
+                    invalid_paths.append(path)
+            if isinstance(path, dict):
+                if "name" in path:
+                    if not pathlib.Path(path["name"]).exists():
+                        invalid_paths.append(path["name"])
 
     return invalid_paths
 
 
 def check_duplicated_jobs(
-    jobs: list[list[dict[str, str] | None]],
+    jobs: dict[pathlib.Path, list[dict | None]]
 ) -> set[dict[str, str] | None]:
     """Check that all jobs are unique in different Zuul YAML files.
 
     Args:
     ----
-        jobs: A list of lists of dictionaries representing Zuul jobs.
+        jobs: A dictionary containing a list of Zuul jobs.
 
     Returns:
     -------
@@ -49,8 +58,11 @@ def check_duplicated_jobs(
     duplicated_items = set()
     unique_items = set()
 
-    for sublist in jobs:
-        sublist_set = set(sublist)
+    for joblist in jobs.values():
+        try:
+            sublist_set = set(job["job"]["name"] for job in joblist)
+        except KeyError:
+            continue
         for job in sublist_set:
             if job in seen_items:
                 duplicated_items.add(job)
@@ -58,3 +70,54 @@ def check_duplicated_jobs(
         unique_items.update(sublist_set)
 
     return duplicated_items
+
+
+def check_inexistent_nodesets(
+    nodesets: list[dict],
+    jobs: list[dict | None],
+) -> list[dict[str, str]]:
+    """Check that all used nodesets exist.
+
+    Args:
+    ----
+        nodesets: A list of nodesets.
+        jobs: A list of Zuul jobs.
+
+    Returns:
+    -------
+        A list of inexistent nodesets.
+    """
+    nodeset_list = set()
+    for nodeset in nodesets:
+        nodeset_list.add(nodeset["nodeset"]["name"])
+        try:
+            node_list = nodeset["nodeset"]["nodes"]
+        except KeyError:
+            continue
+        for node in node_list:
+            if isinstance(node["name"], str):
+                nodeset_list.add(node["name"])
+            if isinstance(node["name"], list):
+                for node_name in node["name"]:
+                    nodeset_list.add(node_name)
+    inexistent_nodesets = set()
+
+    for job in jobs:
+        try:
+            if isinstance(job["job"]["nodeset"], str):
+                nodeset = {}
+                nodeset["name"] = job["job"]["nodeset"]
+                job_nodeset_list = [nodeset]
+            else:
+                job_nodeset_list = job["job"]["nodeset"]["nodes"]
+        except KeyError:
+            continue
+        for nodeset in job_nodeset_list:
+            try:
+                if nodeset["name"] not in nodeset_list:
+                    inexistent_nodesets.add(nodeset["name"])
+            except TypeError:
+                if job_nodeset_list.get("name", None) and job_nodeset_list.get("name", None) not in nodeset_list:
+                    inexistent_nodesets.add(job_nodeset_list["name"])
+
+    return inexistent_nodesets
