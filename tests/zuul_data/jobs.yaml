@@ -97,3 +97,18 @@
         semaphores:
           - semaphore-bar
       - playbooks/run-type-semaphores/run-3.yaml
+
+- job:
+    name: test-regular-expression
+    branches:
+      - regex: ^bar$
+        negate: false
+      - ^foo$
+
+- job:
+    name: test-secret
+    secrets:
+      - foo
+      - name: bar
+        secret: bar
+        pass-to-parent: true
