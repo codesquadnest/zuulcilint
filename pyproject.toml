@@ -104,7 +104,7 @@ legacy_tox_ini = """
     deps =
         ruff
     commands =
-        ruff zuulcilint tests
+        ruff check zuulcilint tests
 
     [testenv:pre-commit]
     skip_install = true
