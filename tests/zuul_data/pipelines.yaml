@@ -62,3 +62,31 @@
     trigger:
       timer:
         - time: 0 1-4 * * 0-4
+
+- pipeline:
+    name: foo
+    manager: independent
+    trigger:
+      gerrit:
+        - event: comment-added
+          comment: foo
+        - event: comment-added
+          comment:
+            regex: bar
+        - event: comment-added
+          comment:
+            - foofoo
+            - regex: barbar
+              negate: false
+
+      github:
+        - event: pull_request
+          comment: foo
+        - event: pull_request
+          comment:
+            regex: bar
+        - event: pull_request
+          comment:
+            - foofoo
+            - regex: barbar
+              negate: false

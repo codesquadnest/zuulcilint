@@ -2,7 +2,7 @@
     "title": "JSON/YAML schema for Zuul CI 9.3.0 configuration files",
     "description": "Used for quick validation of Zuul CI job configuration files.",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "type": "array",
     "additionalProperties": false,
     "items": {
@@ -148,14 +148,19 @@
                     "description": "When Zuul encounters an error running a job's pre-run playbook, Zuul will stop and restart the job. Errors during the main or post-run -playbook phase of a job are not affected by this parameter (they are reported immediately). This parameter controls the number of attempts to make before an error is reported."
                 },
                 "branches": {
-                    "type": [
-                        "string",
-                        "array"
-                    ],
-                    "items": { "type": "string" },
                     "title": "job.branches",
                     "description": "A regular expression (or list of regular expressions) which describe on what branches a job should run (or in the case of variants, to alter the behavior of a job for a certain branch).\nThis attribute is not inherited in the usual manner. Instead, it is used to determine whether each variant on which it appears will be used when running the job.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.branches"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.branches"],
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/regular-expression",
+                            "description": "A regular expression (or list of regular expressions) which describe on what branches a job should run (or in the case of variants, to alter the behavior of a job for a certain branch).\nThis attribute is not inherited in the usual manner. Instead, it is used to determine whether each variant on which it appears will be used when running the job."
+                        },
+                        {
+                            "type": "array",
+                            "items": { "$ref": "#/definitions/regular-expression" }
+                        }
+                    ]
                 },
                 "cleanup-run": {
                     "allOf": [
@@ -217,10 +222,17 @@
                     "description": "Normally when a job fails, the string FAILURE is reported as the result for the job. If set, this option may be used to supply a different string."
                 },
                 "failure-output": {
-                    "type": ["string", "array"],
-                    "items": { "type": "string" },
+                    "type": [
+                        "array",
+                        "string"
+                    ],
+                    "format": "regex",
+                    "items": {
+                        "type": "string",
+                        "format": "regex"
+                    },
                     "title": "job.failure-output",
-                    "description": "A regular expression (or list of regular expressions) that should be matched against job output to determine if the job is going to fail. Matches are performed line-by-line (multiline regular expressions will not be effective).\nThis option is not required; job failure is determined by the result code from its Ansible playbooks. However, if this option is supplied, and one of the regular expressions matches a line in the streaming output from the job, Zuul will be able to anticipate the failure before the completion of the playbook. In this case, it will be able to restart jobs for changes behind it in a dependent pipeline.\nWhen inheriting or applying variants this option is combined so that regular expressions from all parents and variants used will be applied.\nUse caution when specifying this option. If an early failure is triggered, the job result will be recorded as FAILURE even if the job playbooks ultimately succeed."
+                    "description": "A regular expression string (or list of regular expression strings) that should be matched against job output to determine if the job is going to fail. Matches are performed line-by-line (multiline regular expressions will not be effective).\nThis option is not required; job failure is determined by the result code from its Ansible playbooks. However, if this option is supplied, and one of the regular expressions matches a line in the streaming output from the job, Zuul will be able to anticipate the failure before the completion of the playbook. In this case, it will be able to restart jobs for changes behind it in a dependent pipeline.\nWhen inheriting or applying variants this option is combined so that regular expressions from all parents and variants used will be applied.\nUse caution when specifying this option. If an early failure is triggered, the job result will be recorded as FAILURE even if the job playbooks ultimately succeed."
                 },
                 "failure-url": {
                     "type": "string",
@@ -233,9 +245,13 @@
                         "array",
                         "string"
                     ],
-                    "items": { "type": "string" },
+                    "format": "regex",
+                    "items": {
+                        "type": "string",
+                        "format": "regex"
+                    },
                     "title": "job.files",
-                    "description": "This is a regular expression or list of regular expressions. This indicates that the job should only run on changes where the specified files are modified. Unlike branches, this value is subject to inheritance and overriding, so only the final value is used to determine if the job should run."
+                    "description": "This is a regular expression or list of regular expression strings. This indicates that the job should only run on changes where the specified files are modified. Unlike branches, this value is subject to inheritance and overriding, so only the final value is used to determine if the job should run."
                 },
                 "final": {
                     "type": "boolean",
@@ -269,12 +285,16 @@
                 },
                 "irrelevant-files": {
                     "type": [
-                        "string",
-                        "array"
+                        "array",
+                        "string"
                     ],
-                    "items": { "type": "string" },
+                    "format": "regex",
+                    "items": {
+                        "type": "string",
+                        "format": "regex"
+                    },
                     "title": "job.irrelevant-files",
-                    "description": "A regular expression or list of regular expressions. It indicates that the job should run unless all of the files changed match this list. In other words, if the regular expression docs/.* is supplied, then this job will not run if the only files changed are in the docs directory.\nThis is a negative complement of files."
+                    "description": "This is a regular expression or list of regular expression strings. It indicates that the job should run unless all of the files changed match this list. In other words, if the regular expression docs/.* is supplied, then this job will not run if the only files changed are in the docs directory.\nThis is a negative complement of files."
                 },
                 "match-on-config-updates": {
                     "type": "boolean",
@@ -448,6 +468,7 @@
                         { "type": "string" },
                         {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "name": {
                                     "type": "string",
@@ -472,8 +493,10 @@
                         {
                             "type": "array",
                             "items": {
-                                "type": ["string", "object"],
-                                "$ref": "#/definitions/anonymous-job/properties/secrets/oneOf/1"
+                                "anyOf": [
+                                    { "type": "string" },
+                                    { "$ref": "#/definitions/anonymous-job/properties/secrets/oneOf/1" }
+                                ]
                             }
                         }
                     ]
@@ -995,9 +1018,7 @@
                     "title": "pragma.implied-branches",
                     "description": "This is a list of regular expressions, just as job.branches, which may be used to supply the value of the implied branch matcher for all jobs and project-templates in a file.\nThis may be useful if two projects share jobs but have dissimilar branch names.",
                     "examples": ["https://zuul-ci.org/docs/zuul/latest/config/pragma.html#attr-pragma.implied-branches"],
-                    "items": {
-                        "type": "string"
-                    }
+                    "items": { "$ref": "#/definitions/regular-expression" }
                 }
             }
         },
@@ -1262,24 +1283,32 @@
                         "description": "A pull_request event will have associated action(s) to trigger from. The supported actions are:\r\n\r\n- opened\r\nPull request opened.\r\n\r\n- changed\r\nPull request synchronized.\r\n\r\n- closed\r\nPull request closed.\r\n\r\n- reopened\r\nPull request reopened.\r\n\r\n- comment\r\nComment added to pull request.\r\n\r\n- labeled\r\nLabel added to pull request.\r\n\r\n- unlabeled\r\nLabel removed from pull request.\r\n\r\n- status\r\nStatus set on commit. The syntax is user:status:value. This also can be a regular expression.\r\n\r\nA pull_request_review event will have associated action(s) to trigger from. The supported actions are:\r\n\r\n- submitted\r\nPull request review added.\r\n\r\n- dismissed\r\nPull request review removed.\r\n\r\nA check_run event will have associated action(s) to trigger from. The supported actions are:\r\n\r\n- requested\r\nA check run is requested.\r\n\r\n- completed\r\nA check run completed."
                     },
                     "branch": {
-                        "type": ["string", "array"],
-                        "format": "regex",
-                        "items": {
-                            "type": "string",
-                            "format": "regex"
-                        },
                         "title": "pipeline.trigger.&lt;github source&gt;.branch",
-                        "description": "The branch associated with the event. Example: master. This field is treated as a regular expression, and multiple branches may be listed. Used for pull_request and pull_request_review events."
+                        "description": "The branch associated with the event. Example: master. This field is treated as a regular expression, and multiple branches may be listed. Used for pull_request and pull_request_review events.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/regular-expression",
+                                "description": "The branch associated with the event. Example: master. This field is treated as a regular expression, and multiple branches may be listed. Used for pull_request and pull_request_review events."
+                            },
+                            {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/regular-expression" }
+                            }
+                        ]
                     },
                     "comment": {
-                        "type": ["string", "array"],
-                        "format": "regex",
-                        "items": {
-                            "type": "string",
-                            "format": "regex"
-                        },
                         "title": "pipeline.trigger.&lt;github source&gt;.comment",
-                        "description": "This is only used for pull_request comment actions. It accepts a list of regexes that are searched for in the comment string. If any of these regexes matches a portion of the comment string the trigger is matched. comment: retrigger will match when comments containing 'retrigger' somewhere in the comment text are added to a pull request."
+                        "description": "This is only used for pull_request comment actions. It accepts a list of regexes that are searched for in the comment string. If any of these regexes matches a portion of the comment string the trigger is matched. comment: retrigger will match when comments containing 'retrigger' somewhere in the comment text are added to a pull request.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/regular-expression",
+                                "description": "This is only used for pull_request comment actions. It accepts a list of regexes that are searched for in the comment string. If any of these regexes matches a portion of the comment string the trigger is matched. comment: retrigger will match when comments containing 'retrigger' somewhere in the comment text are added to a pull request."
+                            },
+                            {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/regular-expression" }
+                            }
+                        ]
                     },
                     "label": {
                         "type": "array",
@@ -1318,10 +1347,18 @@
                         "description": "This is only used for check_run events. It works similar to the status attribute and accepts a list of strings each of which matches the app requesting or updating the check run, the check run’s name and the conclusion in the format of app:name::conclusion. To make Zuul properly interact with Github’s checks API, each pipeline that is using the checks API should have at least one trigger that matches the pipeline’s name regardless of the result, e.g. zuul:cool-pipeline:.*. This will enable the cool-pipeline to trigger whenever a user requests the cool-pipeline check run as part of the zuul check suite. Additionally, one could use .*:success to trigger a pipeline whenever a successful check run is reported (e.g. useful for gating)."
                     },
                     "ref": {
-                        "type": ["string", "array"],
-                        "items": { "type": "string" },
                         "title": "pipeline.trigger.&lt;github source&gt;.ref",
-                        "description": "This is only used for push events. This field is treated as a regular expression and multiple refs may be listed. GitHub always sends full ref name, eg. refs/tags/bar and this string is matched against the regular expression."
+                        "description": "This is only used for push events. This field is treated as a regular expression and multiple refs may be listed. GitHub always sends full ref name, eg. refs/tags/bar and this string is matched against the regular expression.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/regular-expression",
+                                "description": "This is only used for push events. This field is treated as a regular expression and multiple refs may be listed. GitHub always sends full ref name, eg. refs/tags/bar and this string is matched against the regular expression."
+                            },
+                            {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/regular-expression" }
+                            }
+                        ]
                     },
                     "require-status": {
                         "type": "array",
@@ -1371,17 +1408,33 @@
                         "examples": ["patchset-created", "comment-added", "ref-updated"]
                     },
                     "branch": {
-                        "type": ["string", "array"],
-                        "items": { "type": "string" },
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.branch",
                         "description": "The branch associated with the event. Example: master. This field is treated as a regular expression, and multiple branches may be listed.",
-                        "examples": ["master"]
+                        "examples": ["master"],
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/regular-expression",
+                                "description": "The branch associated with the event. Example: master. This field is treated as a regular expression, and multiple branches may be listed."
+                            },
+                            {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/regular-expression" }
+                            }
+                        ]
                     },
                     "ref": {
-                        "type": ["string", "array"],
-                        "items": { "type": "string" },
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.ref",
-                        "description": "On ref-updated events, the branch parameter is not used, instead the ref is provided. Currently Gerrit has the somewhat idiosyncratic behavior of specifying bare refs for branch names (e.g., master), but full ref names for other kinds of refs (e.g., refs/tags/foo). Zuul matches this value exactly against what Gerrit provides. This field is treated as a regular expression, and multiple refs may be listed."
+                        "description": "On ref-updated events, the branch parameter is not used, instead the ref is provided. Currently Gerrit has the somewhat idiosyncratic behavior of specifying bare refs for branch names (e.g., master), but full ref names for other kinds of refs (e.g., refs/tags/foo). Zuul matches this value exactly against what Gerrit provides. This field is treated as a regular expression, and multiple refs may be listed.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/regular-expression",
+                                "description": "On ref-updated events, the branch parameter is not used, instead the ref is provided. Currently Gerrit has the somewhat idiosyncratic behavior of specifying bare refs for branch names (e.g., master), but full ref names for other kinds of refs (e.g., refs/tags/foo). Zuul matches this value exactly against what Gerrit provides. This field is treated as a regular expression, and multiple refs may be listed."
+                            },
+                            {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/regular-expression" }
+                            }
+                        ]
                     },
                     "ignore-deletes": {
                         "type": "boolean",
@@ -1409,36 +1462,48 @@
                         "description": "This is only used for comment-added events. It only matches if the event has a matching approval associated with it. Example: Code-Review: 2 matches a +2 vote on the code review category. Multiple approvals may be listed."
                     },
                     "email": {
-                        "type": ["string", "array"],
-                        "format": "regex",
-                        "items": {
-                            "type": "string",
-                            "format": "regex"
-                        },
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.email",
                         "description": "This is used for any event. It takes a regex applied on the performer email, i.e. Gerrit account email address. If you want to specify several email filters, you must use a YAML list. Make sure to use non greedy matchers and to escapes dots!",
-                        "examples": ["email: ^.*?@example\\.org$"]
+                        "examples": ["email: ^.*?@example\\.org$"],
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/regular-expression",
+                                "description": "This is used for any event. It takes a regex applied on the performer email, i.e. Gerrit account email address. If you want to specify several email filters, you must use a YAML list. Make sure to use non greedy matchers and to escapes dots!"
+                            },
+                            {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/regular-expression" }
+                            }
+                        ]
                     },
                     "username": {
-                        "type": ["string", "array"],
-                        "format": "regex",
-                        "items": {
-                            "type": "string",
-                            "format": "regex"
-                        },
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.username",
                         "description": "This is used for any event. It takes a regex applied on the performer username, i.e. Gerrit account name. If you want to specify several username filters, you must use a YAML list. Make sure to use non greedy matchers and to escapes dots.",
-                        "examples": ["username: ^zuul$"]
+                        "examples": ["username: ^zuul$"],
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/regular-expression",
+                                "description": "This is used for any event. It takes a regex applied on the performer username, i.e. Gerrit account name. If you want to specify several username filters, you must use a YAML list. Make sure to use non greedy matchers and to escapes dots."
+                            },
+                            {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/regular-expression" }
+                            }
+                        ]
                     },
                     "comment": {
-                        "type": ["string", "array"],
-                        "format": "regex",
-                        "items": {
-                            "type": "string",
-                            "format": "regex"
-                        },
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.comment",
-                        "description": "This is only used for comment-added events. It accepts a list of regexes that are searched for in the comment string. If any of these regexes matches a portion of the comment string the trigger is matched. comment: retrigger will match when comments containing retrigger somewhere in the comment text are added to a change."
+                        "description": "This is only used for comment-added events. It accepts a list of regexes that are searched for in the comment string. If any of these regexes matches a portion of the comment string the trigger is matched. comment: retrigger will match when comments containing retrigger somewhere in the comment text are added to a change.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/regular-expression",
+                                "description": "This is only used for comment-added events. It accepts a list of regexes that are searched for in the comment string. If any of these regexes matches a portion of the comment string the trigger is matched. comment: retrigger will match when comments containing retrigger somewhere in the comment text are added to a change."
+                            },
+                            {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/regular-expression" }
+                            }
+                        ]
                     },
                     "require-approval": {
                         "type": "object",
@@ -2103,6 +2168,35 @@
                     ]
                 }
             }
+        },
+        "regular-expression": {
+            "title": "<regular-expression>",
+            "description": "Many options accept literal strings or regular expressions. In these cases, the regular expression matching starts at the beginning of the string as if there were an implicit ^ at the start of the regular expression. To match at an arbitrary position, prepend .* to the regular expression.\nZuul uses the RE2 library which has a restricted regular expression syntax compared to PCRE.\nSome options may be specified for regular expressions. To do so, use a dictionary to specify the regular expression in the YAML configuration.",
+            "anyOf": [
+                {
+                    "type": "string",
+                    "format": "regex"
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "regex": {
+                            "type": "string",
+                            "title": "<regular-expression>.regex",
+                            "description": "The pattern for the regular expression. This uses the RE2 syntax.",
+                            "format": "regex"
+                        },
+                        "negate": {
+                            "type": "boolean",
+                            "title": "<regular-expression>.negate",
+                            "description": "Whether to negate the match.",
+                            "default": false
+                        }
+                    },
+                    "required": ["regex"]
+                }
+            ]
         }
     }
 }
