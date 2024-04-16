@@ -112,3 +112,7 @@
       - name: bar
         secret: bar
         pass-to-parent: true
+
+- job:
+    name: test-allowed-projects
+    allowed-projects: zuul/zuul
