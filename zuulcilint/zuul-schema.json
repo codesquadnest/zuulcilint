@@ -1,8 +1,8 @@
 {
-    "title": "JSON/YAML schema for Zuul CI 9.3.0 configuration files",
+    "title": "JSON/YAML schema for Zuul CI 10.0.0 configuration files",
     "description": "Used for quick validation of Zuul CI job configuration files.",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "version": "1.0.3",
+    "version": "1.1.0",
     "type": "array",
     "additionalProperties": false,
     "items": {
@@ -131,11 +131,8 @@
                     "description": "Keep stdout/stderr of command and shell tasks separate (the Ansible default behavior) instead of merging stdout and stderr.\nSince version 3, Zuul has combined the stdout and stderr streams in Ansible command tasks, but will soon switch to using the normal Ansible behavior. In an upcoming release of Zuul, this default will change to True, and in a later release, this option will be removed altogether.\nThis option may be used in the interim to verify playbook compatibility and facilitate upgrading to the new behavior."
                 },
                 "ansible-version": {
-                    "type": [
-                        "string",
-                        "number"
-                    ],
-                    "default": 6,
+                    "default": "8",
+                    "enum": ["8", "9", 8, 9],
                     "title": "job.ansible-version",
                     "description": "The ansible version to use for all playbooks of the job.",
                     "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.ansible-version"]
@@ -1268,13 +1265,13 @@
                         "oneOf": [
                             {
                                 "type": "string",
-                                "enum": ["opened", "changed", "closed", "reopened", "comment", "labeled", "unlabeled", "status", "submitted", "dismissed", "requested", "completed"]
+                                "enum": ["opened", "changed", "closed", "reopened", "comment", "labeled", "unlabeled", "status", "submitted", "dismissed", "rerequested", "completed"]
                             },
                             {
                                 "type": "array",
                                 "items": {
                                     "type": "string",
-                                    "enum": ["opened", "changed", "closed", "reopened", "comment", "labeled", "unlabeled", "status", "submitted", "dismissed", "requested", "completed"]
+                                    "enum": ["opened", "changed", "closed", "reopened", "comment", "labeled", "unlabeled", "status", "submitted", "dismissed", "rerequested", "completed"]
                                 }
                             }
                         ],
@@ -1402,7 +1399,7 @@
                 "properties": {
                     "event": {
                         "type": "string",
-                        "enum": ["patchset-created", "comment-added", "ref-updated", "change-restored", "draft-published", "change-merged"],
+                        "enum": ["patchset-created", "comment-added", "ref-updated", "change-restored", "draft-published", "change-merged", "hashtags-changed"],
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.event",
                         "description": "The event name from gerrit.\nThis field is treated as a regular expression.",
                         "examples": ["patchset-created", "comment-added", "ref-updated"]
@@ -1498,6 +1495,34 @@
                             {
                                 "$ref": "#/definitions/regular-expression",
                                 "description": "This is only used for comment-added events. It accepts a list of regexes that are searched for in the comment string. If any of these regexes matches a portion of the comment string the trigger is matched. comment: retrigger will match when comments containing retrigger somewhere in the comment text are added to a change."
+                            },
+                            {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/regular-expression" }
+                            }
+                        ]
+                    },
+                    "added": {
+                        "title": "pipeline.trigger.&lt;gerrit source&gt;.added",
+                        "description": "This is only used for hashtags-changed events. It accepts a regex or list of regexes that are searched for in the list of hashtags added to the change in this event. If any of these regexes match a portion of any of the added hashtags, the trigger is matched.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/regular-expression",
+                                "description": "This is only used for hashtags-changed events. It accepts a regex or list of regexes that are searched for in the list of hashtags added to the change in this event. If any of these regexes match a portion of any of the added hashtags, the trigger is matched."
+                            },
+                            {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/regular-expression" }
+                            }
+                        ]
+                    },
+                    "removed": {
+                        "title": "pipeline.trigger.&lt;gerrit source&gt;.removed",
+                        "description": "This is only used for hashtags-changed events. It accepts a regex or list of regexes that are searched for in the list of hashtags removed to the change in this event. If any of these regexes match a portion of any of the removed hashtags, the trigger is matched.",
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/regular-expression",
+                                "description": "This is only used for hashtags-changed events. It accepts a regex or list of regexes that are searched for in the list of hashtags removed to the change in this event. If any of these regexes match a portion of any of the removed hashtags, the trigger is matched."
                             },
                             {
                                 "type": "array",
@@ -1691,7 +1716,8 @@
                     "title": "pipeline.&lt;reporter&gt;.&lt;mqtt source&gt;.include-returned-data",
                     "description": "If set to true, Zuul will include any data returned from the job via Return Values."
                 }
-            }
+            },
+            "required": ["topic"]
         },
         "any-driver-reporter": {
             "patternProperties": {
