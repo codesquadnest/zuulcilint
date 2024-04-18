@@ -2,7 +2,7 @@
     "title": "JSON/YAML schema for Zuul CI 10.0.0 configuration files",
     "description": "Used for quick validation of Zuul CI job configuration files.",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "type": "array",
     "additionalProperties": false,
     "items": {
@@ -118,7 +118,7 @@
                     "description": "To indicate a job is not intended to be run directly, but instead must be inherited from, set this attribute to true.\nOnce this is set to true in a job it cannot be reset to false within the same job by other variants; however jobs which inherit from it can (and by default do) reset it to false."
                 },
                 "allowed-projects": {
-                    "type": "array",
+                    "type": ["string", "array"],
                     "title": "job.allowed-projects",
                     "description": "A list of Zuul projects which may use this job. By default, a job may be used by any other project known to Zuul, however, some jobs use resources or perform actions which are not appropriate for other projects. In these cases, a list of projects which are allowed to use this job may be supplied. If this list is not empty, then it must be an exhaustive list of all projects permitted to use the job.\nThe current project (where the job is defined) is not automatically included, so if it should be able to run this job, then it must be explicitly listed. This setting is ignored by config projects - they may add any job to any project's pipelines. By default, all projects may use the job.\nThis attribute is not overridden by inheritance; instead it is the intersection of all applicable parents and variants (i.e., jobs can reduce but not expand the set of allowed projects when they inherit).",
                     "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.allowed-projects"],
