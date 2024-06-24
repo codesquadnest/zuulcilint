@@ -171,15 +171,16 @@ def print_warnings(
         None.
     """
     n_bad_yaml = len(warnings["warnings"]["bad_yaml_files"])
-    n_duplicate = len(warnings["warnings"]["duplicated_jobs"])
+    n_duplicate_jobs = len(warnings["warnings"]["duplicated_jobs"])
+    n_duplicate_semaphore = len(warnings["warnings"]["duplicate_semaphore"])
     n_nodeset = len(warnings["warnings"]["inexistent_nodesets"])
 
-    if n_bad_yaml == 0 and n_duplicate == 0 and n_nodeset == 0:
+    if n_bad_yaml == 0 and n_duplicate_jobs == 0 and n_duplicate_semaphore == 0 and n_nodeset == 0:
         return
 
     if severity == MsgSeverity.WARNING:
         zuul_utils.print_bold("Warnings", MsgSeverity.WARNING)
-        print(f"Total {severity.value}s: {n_duplicate + n_duplicate + n_nodeset}")
+        print(f"Total {severity.value}s: {n_duplicate_jobs + n_duplicate_semaphore + n_nodeset}")
 
     if n_bad_yaml:
         zuul_utils.print_bold(f"File extension {severity.value}s:", severity)
@@ -190,11 +191,17 @@ def print_warnings(
         for file_path in warnings["warnings"]["bad_yaml_files"]:
             print(f"{file_path}")
 
-    if n_duplicate:
+    if n_duplicate_jobs:
         zuul_utils.print_bold(f"Duplicate job {severity.value}s:", severity)
-        zuul_utils.print_bold(f"Found {n_duplicate} duplicate jobs", None)
+        zuul_utils.print_bold(f"Found {n_duplicate_jobs} duplicate jobs", None)
         for job in warnings["warnings"]["duplicated_jobs"]:
             print(f"{job}")
+
+    if n_duplicate_semaphore:
+        zuul_utils.print_bold(f"Duplicate semaphore {severity.value}s:", severity)
+        zuul_utils.print_bold(f"Found {n_duplicate_semaphore} duplicate semaphores", None)
+        for semaphore in warnings["warnings"]["duplicate_semaphore"]:
+            print(f"{semaphore}")
 
     if n_nodeset:
         zuul_utils.print_bold(f"Inexistent nodeset {severity.value}s:", severity)
@@ -355,6 +362,18 @@ def main():
     else:
         print("No inexistent nodesets found")
     results["warnings"]["inexistent_nodesets"] = inexistent_nodesets
+
+    # Check for duplicate semaphore in job and job.run
+    zuul_utils.print_bold("Checking for duplicate semaphore", MsgSeverity.INFO)
+    duplicate_semaphore = zuul_checker.check_duplicate_semaphore(
+        get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.JOB),
+    )
+    if duplicate_semaphore:
+        for semaphore in duplicate_semaphore:
+            print(f"{semaphore}")
+    else:
+        print("No duplicate semaphore found")
+    results["warnings"]["duplicate_semaphore"] = duplicate_semaphore
 
     # Print results
     print_results(

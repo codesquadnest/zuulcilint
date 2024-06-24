@@ -4,3 +4,12 @@
 - job:
     roles:
       - install-docker  # should be "zuul: install-docker"
+
+# Duplicate name for semaphore in both job and run
+- job:
+    name: test-run-semaphores
+    semaphores:
+      - test-run-semaphore
+    run:
+      - name: playbooks/test-run-semaphores.yaml
+        semaphores: test-run-semaphore
