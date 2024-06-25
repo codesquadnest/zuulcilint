@@ -79,3 +79,52 @@ def test_check_duplicated_jobs_no_duplicates():
     }
 
     assert not zuulcilint_checker.check_duplicated_jobs(jobs)
+
+
+def test_check_duplicated_jobs_empty_jobs():
+    """Test that duplicated_jobs() returns an empty set when there are no jobs."""
+    jobs = {}
+
+    assert not zuulcilint_checker.check_duplicated_jobs(jobs)
+
+
+def test_check_duplicated_semaphores_no_duplicates():
+    """Test that check_duplicate_semaphore() returns an empty list when there are no repeated semaphores."""
+    jobs = [
+        {"job": {"name": "job1", "semaphore": "semaphore1"}},
+
+    ]
+
+    assert len(zuulcilint_checker.check_duplicate_semaphore(jobs)) == 0
+
+
+def test_check_duplicated_semaphores_different_job():
+    """Test that check_duplicate_semaphore() returns an empty list when there are no repeated semaphores."""
+    jobs = [
+        {"job": {"name": "job1", "semaphore": "semaphore1"}},
+        {"job": {"name": "job2", "semaphore": "semaphore1"}},
+        {"job": {"name": "job3", "semaphore": "semaphore2"}},
+        {"job": {"name": "job4", "semaphore": "semaphore2"}},
+    ]
+
+    assert len(zuulcilint_checker.check_duplicate_semaphore(jobs)) == 0
+
+
+def test_check_duplicated_semaphores_repeated_semaphores():
+    """Test that check_duplicate_semaphore() returns a set of repeated semaphores."""
+    jobs = [
+        {"job": {"name": "job1", "semaphores": "semaphore1", "run": [{"semaphores": "semaphore1"}]}},
+        {"job": {"name": "job2", "semaphores": "semaphore3", "run": [{"semaphores": "semaphore2"}]}}
+    ]
+
+    assert zuulcilint_checker.check_duplicate_semaphore(jobs) == {"semaphore1"}
+
+
+def test_check_duplicated_semaphores_repeated_list_semaphores():
+    """Test that check_duplicate_semaphore() returns a set of repeated semaphores."""
+    jobs = [
+        {"job": {"name": "job1", "semaphores": ["semaphore1", "semaphore2"], "run": [{"semaphores": "semaphore1"}]}},
+        {"job": {"name": "job2", "semaphores": ["semaphore3", "semaphore4"], "run": [{"semaphores": "semaphore2"}]}}
+    ]
+
+    assert zuulcilint_checker.check_duplicate_semaphore(jobs) == {"semaphore1"}

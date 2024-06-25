@@ -121,3 +121,39 @@ def check_inexistent_nodesets(
                     inexistent_nodesets.add(job_nodeset_list["name"])
 
     return inexistent_nodesets
+
+
+def check_duplicate_semaphore(
+    jobs: list[dict | None]
+) -> set[dict[str, str] | None]:
+    """Check that when a job has a semaphore, the run entry does not have a semaphore
+    with the same name.
+
+    Args:
+    ----
+        jobs: A list of Zuul jobs.
+
+    Returns:
+    -------
+        A set of duplicated semaphores.
+    """
+    duplicate_semaphores = set()
+    for job in jobs:
+        try:
+            if isinstance(job["job"]["semaphores"], str):
+                _job_semaphore_list = [job["job"]["semaphores"]]
+            else:
+                _job_semaphore_list = job["job"]["semaphores"]
+            if isinstance(job["job"]["run"][0]["semaphores"], str):
+                _run_semaphore_list = [job["job"]["run"][0]["semaphores"]]
+            else:
+                _run_semaphore_list = job["job"]["run"][0]["semaphores"]
+        except KeyError:
+            # If the job and run entries do not have semaphores, skip to the next job
+            _job_semaphore_list = []
+            _run_semaphore_list = []
+            continue
+        for semaphore in _job_semaphore_list:
+            if semaphore in _run_semaphore_list:
+                duplicate_semaphores.add(semaphore)
+    return duplicate_semaphores
