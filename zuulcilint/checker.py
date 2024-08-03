@@ -5,9 +5,7 @@ from __future__ import annotations
 import pathlib
 
 
-def check_job_playbook_paths(
-    job: dict[str, dict | list[str | dict]]
-) -> list[str]:
+def check_job_playbook_paths(job: dict[str, dict | list[str | dict]]) -> list[str]:
     """Check that all playbooks in a job have a valid path.
 
     Args:
@@ -107,17 +105,82 @@ def check_inexistent_nodesets(
             if isinstance(job["job"]["nodeset"], str):
                 nodeset = {}
                 nodeset["name"] = job["job"]["nodeset"]
-                job_nodeset_list = [nodeset]
+                job_nodesets = [nodeset]
             else:
-                job_nodeset_list = job["job"]["nodeset"]["nodes"]
+                job_nodesets = job["job"]["nodeset"]["nodes"]
         except KeyError:
             continue
-        for nodeset in job_nodeset_list:
+        for nodeset in job_nodesets:
             try:
                 if nodeset["name"] not in nodeset_list:
                     inexistent_nodesets.add(nodeset["name"])
             except TypeError:
-                if job_nodeset_list.get("name", None) and job_nodeset_list.get("name", None) not in nodeset_list:
-                    inexistent_nodesets.add(job_nodeset_list["name"])
+                if (
+                    job_nodesets.get("name", None)
+                    and job_nodesets.get("name", None) not in nodeset_list
+                ):
+                    inexistent_nodesets.add(job_nodesets["name"])
 
     return inexistent_nodesets
+
+
+def check_duplicate_semaphore(jobs: list[dict | None]) -> set[dict[str, str] | None]:
+    """Check that when a job has a semaphore, the run entry does not have a semaphore
+    with the same name.
+
+    Args:
+    ----
+        jobs: A list of Zuul jobs.
+
+    Returns:
+    -------
+        A set of duplicated semaphores.
+    """
+    duplicate_semaphores = set()
+    _job_semaphore_list = {}
+    _run_semaphore_list = {}
+
+    for job in jobs:
+        if job is None or "job" not in job:
+            continue
+
+        job_name = job["job"].get("name")
+        if job_name is None:
+            continue
+
+        # Initialize lists for semaphores if not already present
+        _job_semaphore_list.setdefault(job_name, [])
+        _run_semaphore_list.setdefault(job_name, [])
+
+        # Collect job semaphores
+        job_semaphores = job["job"].get("semaphores", [])
+        if isinstance(job_semaphores, str):
+            _job_semaphore_list[job_name].append(job_semaphores)
+        else:
+            _job_semaphore_list[job_name].extend(job_semaphores)
+
+        # Collect run semaphores
+        if isinstance(job["job"].get("run"), str):
+            continue
+        else:
+            run_entries = job["job"].get("run", [])
+        if isinstance(run_entries, dict):  # Single run entry case
+            run_entries = [run_entries]
+        for run in run_entries:
+            if isinstance(run, str):
+                # When run entry is a string this means it's a playbook
+                continue
+            else:
+                run_semaphores = run.get("semaphores", [])
+            if isinstance(run_semaphores, str):
+                _run_semaphore_list[job_name].append(run_semaphores)
+            else:
+                _run_semaphore_list[job_name].extend(run_semaphores)
+
+    # Find duplicate semaphores
+    for job_name in _job_semaphore_list.keys():
+        job_semaphores_set = set(_job_semaphore_list[job_name])
+        run_semaphores_set = set(_run_semaphore_list[job_name])
+        duplicate_semaphores.update(job_semaphores_set & run_semaphores_set)
+
+    return duplicate_semaphores
