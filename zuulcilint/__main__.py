@@ -171,15 +171,15 @@ def print_warnings(
         None.
     """
     n_bad_yaml = len(warnings["warnings"]["bad_yaml_files"])
-    n_duplicate = len(warnings["warnings"]["duplicated_jobs"])
+    n_duplicate_jobs = len(warnings["warnings"]["duplicated_jobs"])
     n_nodeset = len(warnings["warnings"]["inexistent_nodesets"])
 
-    if n_bad_yaml == 0 and n_duplicate == 0 and n_nodeset == 0:
+    if n_bad_yaml == 0 and n_duplicate_jobs == 0 and n_nodeset == 0:
         return
 
     if severity == MsgSeverity.WARNING:
         zuul_utils.print_bold("Warnings", MsgSeverity.WARNING)
-        print(f"Total {severity.value}s: {n_duplicate + n_duplicate + n_nodeset}")
+        print(f"Total {severity.value}s: {n_duplicate_jobs + n_nodeset}")
 
     if n_bad_yaml:
         zuul_utils.print_bold(f"File extension {severity.value}s:", severity)
@@ -190,9 +190,9 @@ def print_warnings(
         for file_path in warnings["warnings"]["bad_yaml_files"]:
             print(f"{file_path}")
 
-    if n_duplicate:
+    if n_duplicate_jobs:
         zuul_utils.print_bold(f"Duplicate job {severity.value}s:", severity)
-        zuul_utils.print_bold(f"Found {n_duplicate} duplicate jobs", None)
+        zuul_utils.print_bold(f"Found {n_duplicate_jobs} duplicate jobs", None)
         for job in warnings["warnings"]["duplicated_jobs"]:
             print(f"{job}")
 
@@ -223,10 +223,11 @@ def print_results(
     duplicated_jobs = results["warnings"]["duplicated_jobs"]
     inexistent_nodesets = results["warnings"]["inexistent_nodesets"]
     bad_yaml_files = results["warnings"]["bad_yaml_files"]
+    total_semaphore_errors = results["errors"]["duplicated_semaphores"]
     total_yaml_errors = results["errors"]["yaml"]
     total_playbook_path_errors = results["errors"]["playbook_paths"]
     total_warnings = len(bad_yaml_files) + len(duplicated_jobs) + len(inexistent_nodesets)
-    total_errs = total_yaml_errors + total_playbook_path_errors
+    total_errs = total_yaml_errors + total_playbook_path_errors + total_semaphore_errors
     extra_msg = ""
 
     # --warnings-as-errors flag has higher precedence than --ignore-warnings
@@ -249,10 +250,12 @@ def print_results(
     zuul_utils.print_bold("Failed", MsgSeverity.ERROR)
     err_msg = f"Total errors: {total_errs}\n"
 
-    if total_yaml_errors:
-        err_msg += f"YAML validation errors: {total_yaml_errors}"
+    if total_semaphore_errors:
+        err_msg += f"Duplicated semaphores: {total_semaphore_errors}"
     if total_playbook_path_errors:
         err_msg += f"\nPlaybook path errors: {total_playbook_path_errors}"
+    if total_yaml_errors:
+        err_msg += f"\nYAML validation errors: {total_yaml_errors}"
 
     zuul_utils.print_bold(f"{err_msg + extra_msg}", MsgSeverity.ERROR)
     sys.exit(1)
@@ -305,7 +308,7 @@ def main():
 
     # Initialize results dictionary
     results = {
-        "errors": {"yaml": 0, "playbook_paths": 0},
+        "errors": {"duplicated_semaphores": 0, "playbook_paths": 0, "yaml": 0 },
         "warnings": {
             "duplicated_jobs": [],
             "inexistent_nodesets": [],
@@ -355,6 +358,18 @@ def main():
     else:
         print("No inexistent nodesets found")
     results["warnings"]["inexistent_nodesets"] = inexistent_nodesets
+
+    # Check for duplicate semaphore in job and job.run
+    zuul_utils.print_bold("Checking for duplicate semaphore", MsgSeverity.INFO)
+    duplicate_semaphore = zuul_checker.check_duplicate_semaphore(
+        get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.JOB),
+    )
+    if duplicate_semaphore:
+        for semaphore in duplicate_semaphore:
+            print(f"{semaphore}")
+    else:
+        print("No duplicate semaphore found")
+    results["errors"]["duplicated_semaphores"] = len(duplicate_semaphore)
 
     # Print results
     print_results(
