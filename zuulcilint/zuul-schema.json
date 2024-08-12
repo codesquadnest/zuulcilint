@@ -1,8 +1,8 @@
 {
-    "title": "JSON/YAML schema for Zuul CI 10.0.0 configuration files",
+    "title": "JSON/YAML schema for Zuul CI 11.0.1 configuration files",
     "description": "Used for quick validation of Zuul CI job configuration files.",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "type": "array",
     "additionalProperties": false,
     "items": {
@@ -142,7 +142,7 @@
                     "default": 3,
                     "minimum": 0,
                     "title": "job.attempts",
-                    "description": "When Zuul encounters an error running a job's pre-run playbook, Zuul will stop and restart the job. Errors during the main or post-run -playbook phase of a job are not affected by this parameter (they are reported immediately). This parameter controls the number of attempts to make before an error is reported."
+                    "description": "When Zuul encounters an error running a job's pre-run playbook, Zuul will stop and restart the job. Errors during the main or post-run playbook phase of a job are not affected by this parameter (they are reported immediately). This parameter controls the number of attempts to make before an error is reported."
                 },
                 "branches": {
                     "title": "job.branches",
@@ -163,7 +163,8 @@
                     "allOf": [
                         {
                             "title": "job.cleanup-run",
-                            "description": "The name of a playbook or list of playbooks to run after job execution. Values are either a string describing the full path to the playbook in the repo where the job is defined, or a dictionary.\nThe cleanup phase is performed regardless of the job's result, even when the job is canceled. Cleanup results are not taken into account when reporting the job result.\nWhen a job inherits from a parent, the child's cleanup-run playbooks are run before the parent's."
+                            "description": "The job.cleanup-run attribute is deprecated. Instead, list cleanup playbooks under job.post-run and set the job.post-run.cleanup flag.\nThe name of a playbook or list of playbooks to run after job execution. Values are either a string describing the full path to the playbook in the repo where the job is defined, or a dictionary.\nThe cleanup phase is performed regardless of the job's result, even when the job is canceled. Cleanup results are not taken into account when reporting the job result.\nWhen a job inherits from a parent, the child's cleanup-run playbooks are run before the parent's.",
+                            "deprecated": true
                         },
                         { "$ref": "#/definitions/run-type" }
                     ]
@@ -336,16 +337,9 @@
                     "allOf": [
                       {
                         "title": "job.post-run",
-                        "description": "The name of a playbook or list of playbooks to run after the main body of a job.",
-                        "type": ["string", "array"],
-                        "items": {
-                          "oneOf": [
-                            { "type": "string" },
-                            { "type": "object" }
-                          ]
-                        }
+                        "description": "The name of a playbook or list of playbooks to run after the main body of a job."
                       },
-                      { "$ref": "#/definitions/run-type" }
+                      { "$ref": "#/definitions/post-run-type" }
                     ]
                 },
                 "post-timeout": {
@@ -768,13 +762,13 @@
                     "type": "string",
                     "default": "Starting {pipeline.name} jobs.",
                     "title": "pipeline.start-message",
-                    "description": "The introductory text in reports when jobs are started. Three replacement fields are available status_url, pipeline and change."
+                    "description": "The introductory text in reports when jobs are started. Two replacement fields are available: pipeline and item_url."
                 },
                 "enqueue-message": {
                     "type": "string",
                     "default": "",
                     "title": "pipeline.enqueue-message",
-                    "description": "The introductory text in reports when an item is enqueued. Empty by default."
+                    "description": "The introductory text in reports when an item is enqueued. Empty by default. Two replacement fields are available: pipeline and item_url."
                 },
                 "merge-conflict-message": {
                     "type": "string",
@@ -786,7 +780,7 @@
                     "type": "string",
                     "default": "",
                     "title": "pipeline.no-jobs-message",
-                    "description": "The introductory text in reports when an item is dequeued without running any jobs. Empty by default."
+                    "description": "The introductory text in reports when an item is dequeued without running any jobs. Empty by default. Two replacement fields are available: pipeline and item_url."
                 },
                 "dequeue-message": {
                     "type": "string",
@@ -1224,6 +1218,20 @@
                 }
             }
         },
+        "post-run-type-object": {
+            "type": "object",
+            "default": false,
+            "additionalProperties": false,
+            "properties": {
+                "name": { "$ref": "#/definitions/run-type-object/properties/name" },
+                "semaphores": { "$ref": "#/definitions/run-type-object/properties/semaphores" },
+                "cleanup": {
+                    "title": "job.post-run.cleanup",
+                    "type": "boolean",
+                    "description": "A boolean value indicating whether this is a “cleanup” playbook. Normally Zuul does not run post-run playbooks when it cancels a job, because the results of the job are discarded. If this value is set, then Zuul will make an effort to run the playbook even if the job is canceled."
+                }
+            }
+        },
         "run-type": {
             "anyOf": [
                 { "type": "string" },
@@ -1237,6 +1245,25 @@
                             { "type": "string" },
                             {
                                 "$ref": "#/definitions/run-type-object"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "post-run-type": {
+            "anyOf": [
+                { "type": "string" },
+                {
+                    "$ref": "#/definitions/post-run-type-object"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "anyOf": [
+                            { "type": "string" },
+                            {
+                                "$ref": "#/definitions/post-run-type-object"
                             }
                         ]
                     }
@@ -1362,7 +1389,7 @@
                         "items": { "type": "string" },
                         "deprecated": true,
                         "title": "pipeline.trigger.&lt;github source&gt;.require-status",
-                        "description": "This may be used for any event. It requires that a certain kind of status be present for the PR (the status could be added by the event in question). It follows the same syntax as pipeline.require.<github source>.status. For each specified criteria there must exist a matching status.\nThis is ignored if the pipeline.trigger.<github source>.require attribute is present."
+                        "description": "Deprecated: will now produce a configuration syntax warning, and in a future version of Zuul, an error.\nThis may be used for any event. It requires that a certain kind of status be present for the PR (the status could be added by the event in question). It follows the same syntax as pipeline.require.<github source>.status. For each specified criteria there must exist a matching status.\nThis is ignored if the pipeline.trigger.<github source>.require attribute is present."
                     },
                     "require": {
                         "type": "object",
@@ -1457,6 +1484,25 @@
                         },
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.approval",
                         "description": "This is only used for comment-added events. It only matches if the event has a matching approval associated with it. Example: Code-Review: 2 matches a +2 vote on the code review category. Multiple approvals may be listed."
+                    },
+                    "approval-change": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "patternProperties": {
+                                "^(?!(event$|branch$|ref$|ignore-deletes$|email$|username$|comment$|require-approval$|reject-approval$|require$|reject$).*)": {
+                                    "title": "pipeline.trigger.&lt;gerrit source&gt;.approval.&lt;review category&gt;",
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/definitions/gerrit-review-category"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "title": "pipeline.trigger.&lt;gerrit source&gt;.approval-change",
+                        "description": "This is only used for comment-added events. It works the same way as approval, with the additional requirement that the approval value must have changed from its previous value. This means that it only matches when a user modifies an approval score instead of any comment where the score is present."
                     },
                     "email": {
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.email",

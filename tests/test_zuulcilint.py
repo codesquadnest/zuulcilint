@@ -61,6 +61,6 @@ def test_playbook_errors():
             capture_output=True,
         )
         assert result.returncode != 0
-        assert "Playbook path errors: 7" in result.stderr.decode("utf-8")
+        assert "Playbook path errors: 9" in result.stderr.decode("utf-8")
     except subprocess.CalledProcessError as e:
         pytest.fail(f"Subprocess call failed with error: {e}")

@@ -116,3 +116,11 @@
 - job:
     name: test-allowed-projects
     allowed-projects: zuul/zuul
+
+- job:
+    name: test-post-run-cleanup
+    parent: base
+    run: playbooks/test-post-run-cleanup/run.yaml
+    post-run:
+      - name: playbooks/test-post-run-cleanup/post.yaml
+        cleanup: true
