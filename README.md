@@ -1,6 +1,7 @@
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Known Vulnerabilities](https://snyk.io/test/github/codesquadnest/zuulcilint/badge.svg)](https://snyk.io/advisor/python/zuulcilint)
 
 # zuulcilint
 
