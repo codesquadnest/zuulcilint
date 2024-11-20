@@ -90,3 +90,36 @@
             - foofoo
             - regex: barbar
               negate: false
+
+- pipeline:
+    name: test-rejects
+    manager: independent
+    trigger:
+      gerrit:
+        - event: comment-added
+          comment: foo
+          reject:
+            status: "zuul:check:success"
+        - event: comment-added
+          comment:
+            regex: bar
+          reject:
+            status:
+              - "zuul:check:success"
+
+      github:
+        - event: pull_request
+          comment: foo
+          reject:
+            status: "zuul:check:success"
+        - event: pull_request
+          comment:
+            regex: bar
+          reject:
+            status:
+              - "zuul:check:success"
+
+    reject:
+      github:
+        status:
+          - "zuul:check:success"
