@@ -33,7 +33,7 @@ Add the code below to your `.pre-commit-config.yaml` file:
 
 ```yaml
   - repo: https://github.com/codesquadnest/zuulcilint.git
-    rev: "0.3.0"
+    rev: "0.3.1"
     hooks:
       - id: zuulcilint
 ```
