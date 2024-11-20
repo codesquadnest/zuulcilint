@@ -1894,7 +1894,8 @@
                     "description": "A boolean value (true or false) that indicates whether or not the change must be marked as a draft in GitHub in order to be enqueued."
                 },
                 "status": {
-                    "type": "string",
+                    "type": ["string", "array"],
+                    "items": { "type": "string" },
                     "title": "pipeline.require.&lt;github source&gt;.status",
                     "description": "A string value that corresponds with the status of the pull request. The syntax is user:status:value. This can also be a regular expression.\r\n\r\nZuul does not differentiate between a status reported via status API or via checks API (which is also how Github behaves in terms of branch protection and status checks). Thus, the status could be reported by a pipeline.<reporter>.<github source>.status or a pipeline.<reporter>.<github source>.check.\r\n\r\nWhen a status is reported via the status API, Github will add a [bot] to the name of the app that reported the status, resulting in something like user[bot]:status:value. For a status reported via the checks API, the app\u2019s slug will be used as is."
                 },
@@ -1974,7 +1975,8 @@
                     "description": "A boolean value (true or false) that indicates whether the change must be wip or not wip in order to be enqueued."
                 },
                 "status": {
-                    "type": "boolean",
+                    "type": ["string", "array"],
+                    "items": { "type": "string" },
                     "title": "pipeline.require.&lt;gerrit source&gt;.status",
                     "description": "A string value that corresponds with the status of the change reported by Gerrit."
                 }
@@ -2016,7 +2018,8 @@
                                     "description": "A boolean value (true or false) that indicates whether the change must be the current patchset in order to be enqueued."
                                 },
                                 "status": {
-                                    "type": "string",
+                                    "type": ["string", "array"],
+                                    "items": { "type": "string" },
                                     "title": "pipeline.require.&lt;ambiguous gerrit/github source&gt;.status",
                                     "description": "GitHub:\n\nA string value that corresponds with the status of the pull request. The syntax is user:status:value. This can also be a regular expression.\r\n\r\nZuul does not differentiate between a status reported via status API or via checks API (which is also how Github behaves in terms of branch protection and status checks). Thus, the status could be reported by a pipeline.<reporter>.<github source>.status or a pipeline.<reporter>.<github source>.check.\r\n\r\nWhen a status is reported via the status API, Github will add a [bot] to the name of the app that reported the status, resulting in something like user[bot]:status:value. For a status reported via the checks API, the app\u2019s slug will be used as is.\n\nGerrit:\n\nA string value that corresponds with the status of the change reported by Gerrit."
                                 }
