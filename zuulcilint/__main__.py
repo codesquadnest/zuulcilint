@@ -18,12 +18,19 @@ import zuulcilint.checker as zuul_checker
 import zuulcilint.utils as zuul_utils
 from zuulcilint.utils import MsgSeverity, ZuulObject
 
-# Register custom yaml constructor for "encrypted/pkcs1-oaep"
+# Register constructors for custom YAML tags
 yaml.SafeLoader.add_constructor(
     "!encrypted/pkcs1-oaep",
     zuul_utils.encrypted_pkcs1_oaep_constructor,
 )
-
+yaml.SafeLoader.add_constructor(
+    "!inherit",
+    zuul_utils.override_control_tags_constructor,
+)
+yaml.SafeLoader.add_constructor(
+    "!override",
+    zuul_utils.override_control_tags_constructor,
+)
 
 def lint(file_path: str, schema: dict) -> int:
     """Validate a YAML file against a JSON schema.

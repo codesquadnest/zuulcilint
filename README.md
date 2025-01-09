@@ -51,15 +51,22 @@ validation by adding the following to `.vscode/settings.json`:
 
 ```json
 "yaml.schemas": {
-        "https://raw.githubusercontent.com/codesquadnest/zuulcilint/master/zuulcilint/zuul-schema.json": [
-            "*zuul-extra.d/***/*.yaml",
-            "*zuul.d/**/*.yaml",
-            "*zuul.d/**/**/*.yaml",
-            "*/.zuul.yaml"
-        ]
+  "https://raw.githubusercontent.com/codesquadnest/zuulcilint/master/zuulcilint/zuul-schema.json": [
+      "*zuul-extra.d/***/*.yaml",
+      "*zuul.d/**/*.yaml",
+      "*zuul.d/**/**/*.yaml",
+      "*/.zuul.yaml"
+  ]
 },
 "yaml.customTags": [
-    "!encrypted/pkcs1-oaep array"
+  "!encrypted/pkcs1-oaep",
+  "!encrypted/pkcs1-oaep sequence",
+  "!override",
+  "!override sequence",
+  "!override mapping",
+  "!inherit",
+  "!inherit sequence",
+  "!inherit mapping"
 ],
 "sortJSON.orderOverride": ["title", "name", "$schema", "version", "description", "type"],
 "sortJSON.orderUnderride": ["definitions"]
