@@ -124,3 +124,29 @@
     post-run:
       - name: playbooks/test-post-run-cleanup/post.yaml
         cleanup: true
+
+- job:
+    name: test-override-control-tags
+    parent: base
+    dependencies: !inherit
+      - myjob
+    vars: !inherit
+      foo: bar
+    extra-vars: !override
+      foo: bar
+    host-vars: !inherit
+      foo: bar
+    group-vars: !override
+      foo: bar
+    failure-output: "*Error*"
+    files: !override
+      - "^foo.bar$"
+    irrelevant-files: !inherit "^irrelevant-foo.bar"
+    provides: !inherit
+      - "foobar"
+    requires: !override "foobar2"
+    required-projects: !override
+      - name: foo/bar
+      - bar/foo
+    tags: !override
+      - foobar
