@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "zuulcilint"
-version = "0.3.1"
+version = "1.0.0"
 description = "Zuul CI linter"
 authors = ["Pedro Baptista <pedro.miguel.baptista@gmail.com>"]
 license = "MIT"
@@ -15,17 +15,18 @@ packages = [{include = "zuulcilint"}]
 zuulcilint = "zuulcilint.__main__:main"
 
 [tool.poetry.dependencies]
-python = "^3.8, <4.0"
-PyYAML = "^6.0.1"
 jsonschema = "^4.23.0"
+poetry = "^2.0.0"
+python = "^3.9, <4.0"
+PyYAML = "^6.0.1"
 six = "^1.16.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.5.0"
 pytest = ">=7.4.4,<9.0.0"
-tox = "^4.12.0"
 pytest-cov = ">=4.1,<6.0"
 ruff = ">=0.1.13,<0.9.0"
+tox = "^4.12.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -34,7 +35,7 @@ build-backend = "poetry.core.masonry.api"
 # Configurations for black
 [tool.black]
 line-length = 100
-target-version = ["py38"]
+target-version = ["py39"]
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -89,7 +90,7 @@ ignore = [
 [tool.tox]
 legacy_tox_ini = """
     [tox]
-    envlist = py{38,39,310,311,312}, lint, pre-commit
+    envlist = py{39,310,311,312,313}, lint, pre-commit
     skipsdist = True
     skip_missing_interpreters = True
 
