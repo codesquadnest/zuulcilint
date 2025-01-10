@@ -1,8 +1,8 @@
 {
-    "title": "JSON/YAML schema for Zuul CI 11.0.1 configuration files",
+    "title": "JSON/YAML schema for Zuul CI 11.1.0 configuration files",
     "description": "Used for quick validation of Zuul CI job configuration files.",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "version": "1.2.1",
+    "version": "1.3.0",
     "type": "array",
     "additionalProperties": false,
     "items": {
@@ -184,7 +184,7 @@
                         {
                             "type": "array",
                             "title": "job.dependencies",
-                            "description": "A list of other jobs upon which this job depends. Zuul will not start executing this job until all of its dependencies have completed successfully or have been paused, and if one or more of them fail, this job will not be run.\nThe format for this attribute is either a list of strings or dictionaries. Strings are interpreted as job names.",
+                            "description": "A list of other jobs upon which this job depends. Zuul will not start executing this job until all of its dependencies have completed successfully or have been paused, and if one or more of them fail, this job will not be run.\n\nThe dependent job is provided with artifacts returned by preceding jobs, e.g. if jobC depends on jobB, jobB depends on jobA, then jobC is provided with artifacts from both jobA and jobB.\n\nThe format for this attribute is either a list of strings or dictionaries. Strings are interpreted as job names. Supports override control. The default is `!override:` values are overridden.",
                             "items": {
                                 "oneOf": [
                                     {
@@ -211,7 +211,7 @@
                     "type": "object",
                     "additionalProperties": true,
                     "title": "job.extra-vars",
-                    "description": "A dictionary of variables to supply to Ansible with higher precedence than job, host, or group vars. Note, that despite the name this is not passed to Ansible using the -extra-vars flag."
+                    "description": "A dictionary of variables to supply to Ansible with higher precedence than job, host, or group vars. Note, that despite the name this is not passed to Ansible using the -extra-vars flag.\n\nSupports override control. The default is `!inherit:` values are deep-merged."
                 },
                 "failure-message": {
                     "type": "string",
@@ -230,7 +230,7 @@
                         "format": "regex"
                     },
                     "title": "job.failure-output",
-                    "description": "A regular expression string (or list of regular expression strings) that should be matched against job output to determine if the job is going to fail. Matches are performed line-by-line (multiline regular expressions will not be effective).\nThis option is not required; job failure is determined by the result code from its Ansible playbooks. However, if this option is supplied, and one of the regular expressions matches a line in the streaming output from the job, Zuul will be able to anticipate the failure before the completion of the playbook. In this case, it will be able to restart jobs for changes behind it in a dependent pipeline.\nWhen inheriting or applying variants this option is combined so that regular expressions from all parents and variants used will be applied.\nUse caution when specifying this option. If an early failure is triggered, the job result will be recorded as FAILURE even if the job playbooks ultimately succeed."
+                    "description": "A regular expression (or list of regular expressions) that should be matched against job output to determine if the job is going to fail. Matches are performed line-by-line (multiline regular expressions will not be effective).\n\nThis option is not required; job failure is determined by the result code from its Ansible playbooks. However, if this option is supplied, and one of the regular expressions matches a line in the streaming output from the job, Zuul will be able to anticipate the failure before the completion of the playbook. In this case, it will be able to restart jobs for changes behind it in a dependent pipeline.\n\nUse caution when specifying this option. If an early failure is triggered, the job result will be recorded as FAILURE even if the job playbooks ultimately succeed.\n\nSupports override control. The default is `!inherit:` values are merged without duplication."
                 },
                 "failure-url": {
                     "type": "string",
@@ -249,7 +249,7 @@
                         "format": "regex"
                     },
                     "title": "job.files",
-                    "description": "This is a regular expression or list of regular expression strings. This indicates that the job should only run on changes where the specified files are modified. Unlike branches, this value is subject to inheritance and overriding, so only the final value is used to determine if the job should run."
+                    "description": "This indicates that the job should only run on changes where the specified files are modified. Unlike branches, this value is subject to inheritance and overriding, so only the final value is used to determine if the job should run. This is a regular expression or list of regular expressions.\n\nSupports override control. The default is `!override:` values are overridden."
                 },
                 "final": {
                     "type": "boolean",
@@ -261,7 +261,7 @@
                     "type": "object",
                     "additionalProperties": true,
                     "title": "job.group-vars",
-                    "description": "A dictionary of group variables to supply to Ansible. The keys of this dictionary are node groups as defined in a Nodeset, and the values are dictionaries of variables, just as in job.vars."
+                    "description": "A dictionary of group variables to supply to Ansible. The keys of this dictionary are node groups as defined in a Nodeset, and the values are dictionaries of variables, just as in job.vars.\n\nSupports override control. The default is `!inherit:` values are deep-merged."
                 },
                 "hold-following-changes": {
                     "type": "boolean",
@@ -273,7 +273,7 @@
                     "type": "object",
                     "additionalProperties": true,
                     "title": "job.host-vars",
-                    "description": "A dictionary of host variables to supply to Ansible. The keys of this dictionary are node names as defined in a Nodeset, and the values are dictionaries of variables, just as in job.vars."
+                    "description": "A dictionary of host variables to supply to Ansible. The keys of this dictionary are node names as defined in a Nodeset, and the values are dictionaries of variables, just as in job.vars.\n\nSupports override control. The default is `!inherit:` values are deep-merged."
                 },
                 "intermediate": {
                     "type": "boolean",
@@ -292,13 +292,13 @@
                         "format": "regex"
                     },
                     "title": "job.irrelevant-files",
-                    "description": "This is a regular expression or list of regular expression strings. It indicates that the job should run unless all of the files changed match this list. In other words, if the regular expression docs/.* is supplied, then this job will not run if the only files changed are in the docs directory.\nThis is a negative complement of files."
+                    "description": "This is a negative complement of files. It indicates that the job should run unless all of the files changed match this list. In other words, if the regular expression `docs/.*` is supplied, then this job will not run if the only files changed are in the docs directory. A regular expression or list of regular expressions.\n\nSupports override control. The default is `!override:` values are overridden."
                 },
                 "match-on-config-updates": {
                     "type": "boolean",
                     "default": true,
                     "title": "job.match-on-config-updates",
-                    "description": "If this is set to true (the default), then the job’s file matchers are ignored if a change alters the job’s configuration. This means that changes to jobs with file matchers will be self-testing without requiring that the file matchers include the Zuul configuration file defining the job."
+                    "description": "If this is set to true (the default), then the job's file matchers are ignored if a change alters the job's configuration. This means that changes to jobs with file matchers will be self-testing without requiring that the file matchers include the Zuul configuration file defining the job."
                 },
                 "nodeset": {
                     "title": "job.nodeset",
@@ -365,7 +365,7 @@
                 },
                 "provides": {
                     "title": "job.provides",
-                    "description": "A list of free-form strings which identifies resources provided by this job which may be used by other jobs for other changes using the job.requires attribute.\nWhen inheriting jobs or applying variants, the list of provides is extended (provides specified in a job definition are added to any supplied by their parents).",
+                    "description": "A list of free-form strings which identifies resources provided by this job which may be used by other jobs for other changes using the job.requires attribute.\nSupports override control. The default is `!inherit:` values are merged without duplication.",
                     "oneOf": [
                         {
                             "type": "array",
@@ -381,7 +381,7 @@
                         "array"
                     ],
                     "title": "job.required-projects",
-                    "description": "A list of other projects which are used by this job. Any Zuul projects specified here will also be checked out by Zuul into the working directory for the job. Speculative merging and cross-repo dependencies will be honored. If there is not a change for the project ahead in the pipeline, its repo state as of the time the item was enqueued will be frozen and used for all jobs for a given change.\nThis attribute is not overridden by inheritance; instead it is the union of all applicable parents and variants (i.e., jobs can expand but not reduce the set of required projects when they inherit).\nThe format for this attribute is either a list of strings or dictionaries.",
+                    "description": "A list of other projects which are used by this job. Any Zuul projects specified here will also be checked out by Zuul into the working directory for the job. Speculative merging and cross-repo dependencies will be honored. If there is not a change for the project ahead in the pipeline, its repo state as of the time the item was enqueued will be frozen and used for all jobs for a given change (see Global Repo State).\n\nThe format for this attribute is either a list of strings or dictionaries. Strings are interpreted as project names, dictionaries, if used, may have the following attributes:\n\nSupports override control. The default is `!inherit:` values are merged without duplication.",
                     "items": {
                         "type": ["string", "object"],
                         "properties": {
@@ -396,7 +396,7 @@
                 },
                 "requires": {
                     "title": "job.requires",
-                    "description": "A list of free-form strings which identify resources which may be provided by other jobs for other changes (via the job.provides attribute) that are used by this job.\nWhen Zuul encounters a job with a requires attribute, it searches for those values in the provides attributes of any jobs associated with any queue items ahead of the current change. In this way, if a change uses either git dependencies or a Depends-On header to indicate a dependency on another change, Zuul will be able to determine that the parent change affects the run-time environment of the child change. If such a relationship is found, the job with requires will not start until all of the jobs with matching provides have completed or paused. Additionally, the artifacts returned by the provides jobs will be made available to the requires job.\nWhen inheriting jobs or applying variants, the list of requires is extended (requires specified in a job definition are added to any supplied by their parents).",
+                    "description": "A list of free-form strings which identify resources which may be provided by other jobs for other changes (via the job.provides attribute) that are used by this job.\n\nWhen Zuul encounters a job with a requires attribute, it searches for those values in the provides attributes of any jobs associated with any queue items ahead of the current change. In this way, if a change uses either git dependencies or a Depends-On header to indicate a dependency on another change, Zuul will be able to determine that the parent change affects the run-time environment of the child change. If such a relationship is found, the job with requires will not start until all of the jobs with matching provides have completed or paused. Additionally, the artifacts returned by the provides jobs will be made available to the requires job.\n\nIf the child change is enqueued after the moment the provides job has finished artifacts are still made available to the requires job.\n\nIf provides job has failed, then requires job is marked as failed and is not run.\n\nprovides/requires artifact resolution is ignored for non-change items, e.g. for branch items in supercedent pipeline, branch items in periodic independent pipeline, tag items in independent pipeline.Supports override control. The default is `!inherit:` values are merged without duplication.",
                     "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.requires"],
                     "oneOf": [
                         {
@@ -554,7 +554,7 @@
                     "type": "array",
                     "items": { "type": "string" },
                     "title": "job.tags",
-                    "description": "Metadata about this job. Tags are units of information attached to the job; they do not affect Zuul's behavior, but they can be used within the job to characterize the job. For example, a job which tests a certain subsystem could be tagged with the name of that subsystem, and if the job's results are reported into a database, then the results of all jobs affecting that subsystem could be queried. This attribute is specified as a list of strings, and when inheriting jobs or applying variants, tags accumulate in a set, so the result is always a set of all the tags from all the jobs and variants used in constructing the frozen job, with no duplication."
+                    "description": "Metadata about this job. Tags are units of information attached to the job; they do not affect Zuul's behavior, but they can be used within the job to characterize the job. For example, a job which tests a certain subsystem could be tagged with the name of that subsystem, and if the job's results are reported into a database, then the results of all jobs affecting that subsystem could be queried. This attribute is specified as a list of strings.\nSupports override control. The default is `!inherit:` values are merged without duplication."
                 },
                 "timeout": {
                     "type": "integer",
@@ -565,7 +565,7 @@
                 "vars": {
                     "type": "object",
                     "title": "job.vars",
-                    "description": "A dictionary of variables to supply to Ansible. When inheriting from a job (or creating a variant of a job) vars are merged with previous definitions. This means a variable definition with the same name will override a previously defined variable, but new variable names will be added to the set of defined variables.\nWhen running a trusted playbook, the value of variables will be frozen at the start of the job. Therefore if the value of the variable is an Ansible Jinja template, it may only reference values which are known at the start of the job, and its value will not change. Untrusted playbooks dynamically evaluate variables and are not limited by this restriction.\nUn-frozen versions of all the original job variables are available tagged with the !unsafe YAML tag under the unsafe_vars variable hierarchy. This tag prevents Ansible from evaluating them as Jinja templates. For example, the job variable myvar would be available under unsafe_vars.myvar. Advanced users may force Ansible to evaluate these values, but it is not recommended to do so except in the most controlled of circumstances. They are almost impossible to render safely.",
+                    "description": "A dictionary of variables to supply to Ansible.\n\nWhen running a trusted playbook, the value of variables will be frozen at the start of the job. Therefore if the value of the variable is an Ansible Jinja template, it may only reference values which are known at the start of the job, and its value will not change. Untrusted playbooks dynamically evaluate variables and are not limited by this restriction.\nUn-frozen versions of all the original job variables are available tagged with the !unsafe YAML tag under the unsafe_vars variable hierarchy. This tag prevents Ansible from evaluating them as Jinja templates. For example, the job variable myvar would be available under unsafe_vars.myvar. Advanced users may force Ansible to evaluate these values, but it is not recommended to do so except in the most controlled of circumstances. They are almost impossible to render safely.\n\nSupports override control. The default is `!inherit:` values are deep-merged.",
                     "additionalProperties": true
                 },
                 "voting": {
@@ -1036,6 +1036,15 @@
                     "title": "project.templates",
                     "description": "A list of Project Template references; the project-pipeline definitions of each Project Template will be applied to this project. If more than one template includes jobs for a given pipeline, they will be combined, as will any jobs specified in project-pipeline definitions on the project itself."
                 },
+                "branches": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "regex"
+                    },
+                    "title": "project.branches",
+                    "description": "A list of branches to which this project stanza should apply.\n\nIf omitted on a project stanza within an untrusted-project that is configuring its own project, the current branch will be used (pragma settings are ignored). That means that in the typical case where this option is omitted on an untrusted project, the stanza is always interpreted as configuring the project on the branch where the definition is found.\n\nIf omitted on a project stanza within a config-project, the stanza will be interpreted as applying to all branches (but pragma settings are effective in this case, see below).\n\nIf omitted when configuring a project other than the current project, if the current project is branched, then the current branch will be used (but pragma settings are effective in this case, see below). If the current project has only one branch, then the stanza will be interpreted as applying to all branches.\n\nIn the cases where pragma settings are effective, if pragma.implied-branch-matchers is in effect then pragma.implied-branches will be used.\n\nIn all cases, explicit configuration of branches overrides implied branches.\n\nNote that use of this attribute when configuring the jobs run on the current project can produce undesirable behavior when combined with common project branching paradigms. In particular, note that when a project is branched, the project stanzas are effectively copied onto that branch, and therefore additional explicit stanzas will be in effect. It is recommended to only use this attribute inside unbranched projects and instead use the default implicit branch behavior for branched projects."
+                },
                 "default-branch": {
                     "type": "string",
                     "default": "master",
@@ -1138,7 +1147,7 @@
                     "type": "boolean",
                     "default": "false",
                     "title": "queue.per-branch",
-                    "description": "Queues by default define a single queue for all projects and branches that use it. This is especially important if projects want to do upgrade tests between different branches in the gate. If a set of projects doesn’t have this use case it can configure the queue to create a shared queue per branch for all projects. This can be useful for large projects to improve the throughput of a gate pipeline as this results in shorter queues and thus less impact when a job fails in the gate. Note that this means that all projects that should be gated must have aligned branch names when using per branch queues. Otherwise changes that belong together end up in different queues."
+                    "description": "Queues by default define a single queue for all projects and branches that use it. This is especially important if projects want to do upgrade tests between different branches in the gate. If a set of projects doesn't have this use case it can configure the queue to create a shared queue per branch for all projects. This can be useful for large projects to improve the throughput of a gate pipeline as this results in shorter queues and thus less impact when a job fails in the gate. Note that this means that all projects that should be gated must have aligned branch names when using per branch queues. Otherwise changes that belong together end up in different queues."
                 },
                 "allow-circular-dependencies": {
                     "type": "boolean",
@@ -1368,7 +1377,7 @@
                         "type": ["string", "array"],
                         "items": { "type": "string" },
                         "title": "pipeline.trigger.&lt;github source&gt;.check",
-                        "description": "This is only used for check_run events. It works similar to the status attribute and accepts a list of strings each of which matches the app requesting or updating the check run, the check run’s name and the conclusion in the format of app:name::conclusion. To make Zuul properly interact with Github’s checks API, each pipeline that is using the checks API should have at least one trigger that matches the pipeline’s name regardless of the result, e.g. zuul:cool-pipeline:.*. This will enable the cool-pipeline to trigger whenever a user requests the cool-pipeline check run as part of the zuul check suite. Additionally, one could use .*:success to trigger a pipeline whenever a successful check run is reported (e.g. useful for gating)."
+                        "description": "This is only used for check_run events. It works similar to the status attribute and accepts a list of strings each of which matches the app requesting or updating the check run, the check run's name and the conclusion in the format of app:name::conclusion. To make Zuul properly interact with Github's checks API, each pipeline that is using the checks API should have at least one trigger that matches the pipeline's name regardless of the result, e.g. zuul:cool-pipeline:.*. This will enable the cool-pipeline to trigger whenever a user requests the cool-pipeline check run as part of the zuul check suite. Additionally, one could use .*:success to trigger a pipeline whenever a successful check run is reported (e.g. useful for gating)."
                     },
                     "ref": {
                         "title": "pipeline.trigger.&lt;github source&gt;.ref",
