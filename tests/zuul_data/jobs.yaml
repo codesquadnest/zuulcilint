@@ -45,7 +45,6 @@
       - zuul: myorg/ansible-role-foo
         name: foo
 
-
 - job:
     name: variable-example
     nodeset:
@@ -150,3 +149,23 @@
       - bar/foo
     tags: !override
       - foobar
+
+- job:
+    name: test-include-vars
+    include-vars:
+      - name: versions.yaml
+        zuul-project: true  # Mutually exclusive with project
+        required: false
+        use-ref: false
+      - name: foobar.yaml
+        project: foo/bar
+      - var-file.yaml
+
+- job:
+    name: test-include-vars-str
+    include-vars: versions.yaml
+
+- job:
+    name: test-include-vars-single
+    include-vars:
+      name: foobar.yaml

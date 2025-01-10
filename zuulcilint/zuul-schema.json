@@ -1,8 +1,8 @@
 {
-    "title": "JSON/YAML schema for Zuul CI 11.1.0 configuration files",
+    "title": "JSON/YAML schema for Zuul CI 11.2.0 configuration files",
     "description": "Used for quick validation of Zuul CI job configuration files.",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "type": "array",
     "additionalProperties": false,
     "items": {
@@ -99,7 +99,7 @@
             "additionalProperties": false,
             "title": "Job",
             "description": "A job is a unit of work performed by Zuul on an item enqueued into a pipeline. Items may run any number of jobs (which may depend on each other). Each job is an invocation of an Ansible playbook with a specific inventory of hosts. The actual tasks that are run by the job appear in the playbook for that job while the attributes that appear in the Zuul configuration specify information about when, where, and how the job should be run.",
-            "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.deduplicate"],
+            "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html"],
             "properties": {
                 "name": {
                     "type": "string",
@@ -121,7 +121,7 @@
                     "type": ["string", "array"],
                     "title": "job.allowed-projects",
                     "description": "A list of Zuul projects which may use this job. By default, a job may be used by any other project known to Zuul, however, some jobs use resources or perform actions which are not appropriate for other projects. In these cases, a list of projects which are allowed to use this job may be supplied. If this list is not empty, then it must be an exhaustive list of all projects permitted to use the job.\nThe current project (where the job is defined) is not automatically included, so if it should be able to run this job, then it must be explicitly listed. This setting is ignored by config projects - they may add any job to any project's pipelines. By default, all projects may use the job.\nThis attribute is not overridden by inheritance; instead it is the intersection of all applicable parents and variants (i.e., jobs can reduce but not expand the set of allowed projects when they inherit).",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.allowed-projects"],
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.allowed-projects"],
                     "items": { "type": "string" }
                 },
                 "ansible-split-streams": {
@@ -131,11 +131,11 @@
                     "description": "Keep stdout/stderr of command and shell tasks separate (the Ansible default behavior) instead of merging stdout and stderr.\nSince version 3, Zuul has combined the stdout and stderr streams in Ansible command tasks, but will soon switch to using the normal Ansible behavior. In an upcoming release of Zuul, this default will change to True, and in a later release, this option will be removed altogether.\nThis option may be used in the interim to verify playbook compatibility and facilitate upgrading to the new behavior."
                 },
                 "ansible-version": {
-                    "default": "8",
-                    "enum": ["8", "9", 8, 9],
+                    "default": "9",
+                    "enum": ["9", 9],
                     "title": "job.ansible-version",
                     "description": "The ansible version to use for all playbooks of the job.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.ansible-version"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.ansible-version"]
                 },
                 "attempts": {
                     "type": "integer",
@@ -147,7 +147,7 @@
                 "branches": {
                     "title": "job.branches",
                     "description": "A regular expression (or list of regular expressions) which describe on what branches a job should run (or in the case of variants, to alter the behavior of a job for a certain branch).\nThis attribute is not inherited in the usual manner. Instead, it is used to determine whether each variant on which it appears will be used when running the job.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.branches"],
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.branches"],
                     "anyOf": [
                         {
                             "$ref": "#/definitions/regular-expression",
@@ -174,7 +174,7 @@
                     "default": "auto",
                     "title": "job.deduplicate",
                     "description": "In the case of a dependency cycle where multiple changes within the cycle run the same job, this setting indicates whether Zuul should attempt to deduplicate the job. If it is deduplicated, then the job will only run for one queue item within the cycle and other items which run the same job will use the results of that build.\nThis setting determines whether Zuul will consider deduplication. If it is set to false, Zuul will never attempt to deduplicate the job. If it is set to auto (the default), then Zuul will compare the job with other jobs of other queue items in the dependency cycle, and if they are equivalent and meet certain project criteria, it will deduplicate them.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.deduplicate"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.deduplicate"]
                 },
                 "dependencies": {
                     "oneOf": [
@@ -274,6 +274,81 @@
                     "additionalProperties": true,
                     "title": "job.host-vars",
                     "description": "A dictionary of host variables to supply to Ansible. The keys of this dictionary are node names as defined in a Nodeset, and the values are dictionaries of variables, just as in job.vars.\n\nSupports override control. The default is `!inherit:` values are deep-merged."
+                },
+                "include-vars": {
+                    "title": "job.include-vars",
+                    "description": "A list of files from which to read variables.\n\nThe value may be supplied as a list or a single item, and each value may be a string or a dictionary described below. If supplied as a string, it is treated as the job.include-vars.name.\nFiles are read in order, with later variable values overriding earlier ones. Variables specified by job.vars and related attributes will override variables read from files.\n\nThe file should be in YAML or JSON format.\nSupports override control. The default is `!inherit:` values are appended without duplication.",
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "title": "job.include-vars.name",
+                                    "description": "The name (relative to the root of the repository) of the file to read."
+                                },
+                                "project": {
+                                    "type": "string",
+                                    "title": "job.include-vars.project",
+                                    "description": "The name of the project containing the file to read. If this is left unspecified, the project containing the current job definition is used. This option is mutually exclusive with job.include-vars.zuul-project."
+                                },
+                                "required": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "title": "job.include-vars.required",
+                                    "description": "A boolean indicating whether this file is required to be present. If this is set to `true` and the file is not present, it is considered an error and the job result will reflect this."
+                                },
+                                "zuul-project": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "title": "job.include-vars.zuul-project",
+                                    "description": "A boolean indicating that instead of using a specified project, the project associated with the change under test (which can be found in the zuul.project variable) should be used. This permits the definition of jobs that may be centrally defined and used globally to read variables from files in the projects upon which they run.\nThis option is mutually exclusive with job.include-vars.project."
+                                },
+                                "use-ref": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "title": "job.include-vars.use-ref",
+                                    "description": "When this is `true` (the default) if the job is triggered by a ref, and that ref is for the include-vars project, then Zuul will checkout the ref and use the file from that ref checkout. If the include-vars is for a different project than the triggering ref, or the job is not triggered by a ref, or this is set to `false`, then Zuul will follow the normal fallback procedure for branches to determine from which branch to load the file."
+                                }
+                            },
+                            "required": [
+                                "name"
+                            ],
+                            "if": {
+                                "properties": {
+                                    "zuul-project": {
+                                        "const": true
+                                    }
+                                },
+                                "required": [
+                                    "zuul-project"
+                                ]
+                            },
+                            "then": {
+                                "not": {
+                                    "required": [
+                                        "project"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/definitions/anonymous-job/properties/include-vars/oneOf/0"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
                 },
                 "intermediate": {
                     "type": "boolean",
@@ -397,7 +472,7 @@
                 "requires": {
                     "title": "job.requires",
                     "description": "A list of free-form strings which identify resources which may be provided by other jobs for other changes (via the job.provides attribute) that are used by this job.\n\nWhen Zuul encounters a job with a requires attribute, it searches for those values in the provides attributes of any jobs associated with any queue items ahead of the current change. In this way, if a change uses either git dependencies or a Depends-On header to indicate a dependency on another change, Zuul will be able to determine that the parent change affects the run-time environment of the child change. If such a relationship is found, the job with requires will not start until all of the jobs with matching provides have completed or paused. Additionally, the artifacts returned by the provides jobs will be made available to the requires job.\n\nIf the child change is enqueued after the moment the provides job has finished artifacts are still made available to the requires job.\n\nIf provides job has failed, then requires job is marked as failed and is not run.\n\nprovides/requires artifact resolution is ignored for non-change items, e.g. for branch items in supercedent pipeline, branch items in periodic independent pipeline, tag items in independent pipeline.Supports override control. The default is `!inherit:` values are merged without duplication.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.requires"],
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.requires"],
                     "oneOf": [
                         {
                             "type": "array",
@@ -412,7 +487,7 @@
                     "type": "array",
                     "title": "job.roles",
                     "description": "A list of Ansible roles to prepare for the job. Because a job runs an Ansible playbook, any roles which are used by the job must be prepared and installed by Zuul before the job begins. This value is a list of dictionaries, each of which indicates one of two types of roles: a Galaxy role, which is simply a role that is installed from Ansible Galaxy, or a Zuul role, which is a role provided by a project managed by Zuul. Zuul roles are able to benefit from speculative merging and cross-project dependencies when used by playbooks in untrusted projects. Roles are added to the Ansible role path in the order they appear on the job - roles earlier in the list will take precedence over those which follow.\nThis attribute is not overridden on inheritance or variance; instead roles are added with each new job or variant.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.roles"],
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.roles"],
                     "items": {
                         "type": "object",
                         "properties": {
@@ -476,7 +551,7 @@
                                     "default": false,
                                     "title": "job.secrets.pass-to-parent",
                                     "description": "A boolean indicating that this secret should be made available to playbooks in parent jobs. Use caution when setting this value - parent jobs may be in different projects with different security standards. Setting this to true makes the secret available to those playbooks and therefore subject to intentional or accidental exposure.",
-                                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.secrets.pass-to-parent"]
+                                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.secrets.pass-to-parent"]
                                 }
                             },
                             "required": ["name", "secret"]
@@ -580,7 +655,7 @@
                     "enum": ["golang", "flat", "unique"],
                     "title": "job.workspace-scheme",
                     "description": "The scheme to use when placing git repositories in the workspace.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/job.html#attr-job.deduplicate"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.workspace-scheme"]
                 }
             },
             "dependentRequired": {
@@ -715,7 +790,7 @@
             "type": "object",
             "title": "Pipeline",
             "description": "A pipeline describes a workflow operation in Zuul. It associates jobs for a given project with triggering and reporting events.",
-            "examples": ["https://zuul-ci.org/docs/zuul/latest/config/pipeline.html"],
+            "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/pipeline.html"],
             "required": ["name", "manager"],
             "properties": {
                 "name": {
@@ -727,7 +802,7 @@
                     "enum": ["independent", "dependent", "serial", "supercedent"],
                     "title": "pipeline.manager",
                     "description": "There are several schemes for managing pipelines.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/pipeline.html#attr-pipeline.manager"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/pipeline.html#attr-pipeline.manager"]
                 },
                 "post-review": {
                     "type": "boolean",
@@ -948,7 +1023,7 @@
                     "default": 20,
                     "title": "pipeline.window",
                     "description": "Dependent pipeline managers only. Zuul can rate limit dependent pipelines in a manner similar to TCP flow control.\nJobs are only started for items in the queue if they are within the active window for the pipeline. The initial length of this window is configurable with this value. The value given should be a positive integer value. A value of 0 disables rate limiting on the dependent pipeline manager.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/gating.html#pipeline-window"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/gating.html#pipeline-window"]
                 },
                 "window-floor": {
                     "type": "integer",
@@ -968,7 +1043,7 @@
                     "default": "linear",
                     "title": "pipeline.window-increase-type",
                     "description": "Dependent pipeline managers only. This value describes how the window should grow when changes are successfully merged by zuul.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/pipeline.html#attr-pipeline.window-increase-type"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/pipeline.html#attr-pipeline.window-increase-type"]
                 },
                 "window-decrease-factor": {
                     "type": "integer",
@@ -1008,7 +1083,7 @@
                     "type": "array",
                     "title": "pragma.implied-branches",
                     "description": "This is a list of regular expressions, just as job.branches, which may be used to supply the value of the implied branch matcher for all jobs and project-templates in a file.\nThis may be useful if two projects share jobs but have dissimilar branch names.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/pragma.html#attr-pragma.implied-branches"],
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/pragma.html#attr-pragma.implied-branches"],
                     "items": { "$ref": "#/definitions/regular-expression" }
                 }
             }
@@ -1018,7 +1093,7 @@
             "additionalProperties": false,
             "title": "Project",
             "description": "A project corresponds to a source code repository with which Zuul is configured to interact. The main responsibility of the project configuration item is to specify which jobs should run in which pipelines for a given project. Within each project definition, a section for each pipeline may appear. This project-pipeline definition is what determines how a project participates in a pipeline.",
-            "examples": ["https://zuul-ci.org/docs/zuul/latest/config/project.html"],
+            "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/project.html"],
             "properties": {
                 "name": {
                     "type": "string",
@@ -1062,13 +1137,13 @@
                     "type": "object",
                     "title": "project.vars",
                     "description": "A dictionary of variables to be made available for all jobs in all pipelines of this project.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/job-content.html#user-jobs-variable-inheritance"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/job-content.html#user-jobs-variable-inheritance"]
                 },
                 "queue": {
                     "type": "string",
                     "title": "project.queue",
                     "description": "This specifies the name of the shared queue this project is in. Any projects which interact with each other in tests should be part of the same shared queue in order to ensure that they don't merge changes which break the others. This is a free-form string; just set the same value for each group of projects.\nThe name can refer to the name of a queue which allows further configuration of the queue.\nEach pipeline for a project can only belong to one queue, therefore Zuul will use the first value that it encounters. It need not appear in the first instance of a project stanza; it may appear in secondary instances or even in a Project Template definition.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/project.html#attr-project.queue", "https://zuul-ci.org/docs/zuul/latest/config/queue.html#attr-queue"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/project.html#attr-project.queue", "https://zuul-ci.org/docs/zuul/11.2.0/config/queue.html#attr-queue"]
                 }
             },
             "patternProperties": {
@@ -1109,7 +1184,7 @@
                             "type": "boolean",
                             "default": false,
                             "title": "project.&lt;pipeline&gt;.fail-fast",
-                            "description": "If this is set to true, Zuul will report a build failure immediately and abort all still running builds. This can be used to save resources in resource constrained environments at the cost of potentially requiring multiple attempts if more than one problem is present.\nOnce this is defined it cannot be overridden afterwards. So this can be forced to a specific value by e.g. defining it in a config repo."
+                            "description": "If this is set to true, Zuul will report a build or node failure immediately and abort all still running builds. This can be used to save resources in resource constrained environments at the cost of potentially requiring multiple attempts if more than one problem is present.\n\nOnce this is defined it cannot be overridden afterwards. So this can be forced to a specific value by e.g. defining it in a config repo."
                         }
                     }
                 }
@@ -1154,14 +1229,14 @@
                     "default": "false",
                     "title": "queue.allow-circular-dependencies",
                     "description": "Determines whether Zuul is allowed to process circular dependencies between changes for this queue. All projects that are part of a dependency cycle must share the same change queue.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/queue.html#attr-queue.allow-circular-dependencies"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/queue.html#attr-queue.allow-circular-dependencies"]
                 },
                 "dependencies-by-topic": {
                     "type": "boolean",
                     "default": false,
                     "title": "queue.dependencies-by-topic",
                     "description": "Determines whether Zuul should query the code review system for changes under the same topic and treat those as a set of circular dependencies.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/queue.html#attr-queue.dependencies-by-topic"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/queue.html#attr-queue.dependencies-by-topic"]
                 }
             }
         },
@@ -1180,7 +1255,7 @@
                     "type": "object",
                     "title": "secret.data",
                     "description": "A dictionary which will be added to the Ansible variables available to the job. The values can be any of the normal YAML data types (strings, integers, dictionaries or lists) or encrypted strings.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/latest/project-config.html#encryption"],
+                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/project-config.html#encryption"],
                     "patternProperties": {
                         "^(?!(name|data)$)": {
                             "title": "secret.data.&lt;value&gt;"
@@ -1311,7 +1386,7 @@
                                 }
                             }
                         ],
-                        "examples": ["https://zuul-ci.org/docs/zuul/latest/drivers/github.html#attr-pipeline.trigger.%3Cgithub%20source%3E.action"],
+                        "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/drivers/github.html#attr-pipeline.trigger.%3Cgithub%20source%3E.action"],
                         "title": "pipeline.trigger.&lt;github source&gt;.action",
                         "description": "A pull_request event will have associated action(s) to trigger from. The supported actions are:\r\n\r\n- opened\r\nPull request opened.\r\n\r\n- changed\r\nPull request synchronized.\r\n\r\n- closed\r\nPull request closed.\r\n\r\n- reopened\r\nPull request reopened.\r\n\r\n- comment\r\nComment added to pull request.\r\n\r\n- labeled\r\nLabel added to pull request.\r\n\r\n- unlabeled\r\nLabel removed from pull request.\r\n\r\n- status\r\nStatus set on commit. The syntax is user:status:value. This also can be a regular expression.\r\n\r\nA pull_request_review event will have associated action(s) to trigger from. The supported actions are:\r\n\r\n- submitted\r\nPull request review added.\r\n\r\n- dismissed\r\nPull request review removed.\r\n\r\nA check_run event will have associated action(s) to trigger from. The supported actions are:\r\n\r\n- requested\r\nA check run is requested.\r\n\r\n- completed\r\nA check run completed."
                     },
