@@ -132,10 +132,10 @@
                 },
                 "ansible-version": {
                     "default": "9",
-                    "enum": ["9", 9],
+                    "enum": ["9", 9, "11", 11],
                     "title": "job.ansible-version",
                     "description": "The ansible version to use for all playbooks of the job.",
-                    "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.ansible-version"]
+                    "examples": ["https://zuul-ci.org/docs/zuul/13.0.0/config/job.html#attr-job.ansible-version"]
                 },
                 "attempts": {
                     "type": "integer",
