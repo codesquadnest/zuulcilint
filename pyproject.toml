@@ -17,7 +17,7 @@ zuulcilint = "zuulcilint.__main__:main"
 [tool.poetry.dependencies]
 jsonschema = "^4.25.0"
 python = ">3.9.1, <4.0"
-PyYAML = "6.0.2"
+PyYAML = "6.0.3"
 six = "^1.17.0"
 
 [tool.poetry.group.dev.dependencies]
