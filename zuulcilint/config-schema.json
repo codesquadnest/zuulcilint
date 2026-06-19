@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "zuulcilint configuration file schema",
+  "description": "Schema for .zuulcilint.yaml configuration files.",
+  "type": "object",
+  "required": ["version"],
+  "additionalProperties": false,
+  "definitions": {
+    "rule-severity": {
+      "description": "Severity for a single rule — either a plain string or a dict with a 'level' key.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["error", "warning", "disable"]
+        },
+        {
+          "type": "object",
+          "required": ["level"],
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": ["error", "warning", "disable"]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Config file format version. Must be 1."
+    },
+    "warnings-as-errors": {
+      "type": "boolean",
+      "description": "Treat all warnings as errors."
+    },
+    "include": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Only lint files matching at least one glob pattern."
+    },
+    "exclude": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Skip files matching any glob pattern."
+    },
+    "rules": {
+      "type": "object",
+      "description": "Per-rule severity overrides.",
+      "additionalProperties": false,
+      "properties": {
+        "check-duplicated-jobs":     {"$ref": "#/definitions/rule-severity"},
+        "check-inexistent-nodesets": {"$ref": "#/definitions/rule-severity"},
+        "check-duplicate-semaphore": {"$ref": "#/definitions/rule-severity"},
+        "check-playbook-paths":      {"$ref": "#/definitions/rule-severity"}
+      }
+    }
+  }
+}
