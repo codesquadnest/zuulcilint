@@ -1,0 +1,36 @@
+# Example zuulcilint configuration file.
+# Copy this to .zuulcilint.yaml at the root of your repository
+# and adjust as needed.
+# Full documentation: docs/configuration.md
+---
+version: 1
+
+# Treat warnings as errors (useful for strict CI enforcement).
+warnings-as-errors: false
+
+# Only lint files under these glob patterns
+# (repo-relative POSIX paths).
+# An empty list means "lint everything discovered".
+include: []
+
+# Skip files matching any of these patterns.
+# Useful for ignoring generated files or test fixtures.
+exclude: []
+
+rules:
+  # Validate that playbook paths referenced
+  # in jobs exist on disk.
+  # Set to "error" or "warning" to enable
+  # without the --check-playbook-paths flag.
+  check-playbook-paths: disable
+
+  # Detect jobs defined more than once across the scanned files.
+  check-duplicated-jobs: warning
+
+  # Detect jobs referencing nodesets that are
+  # not defined in the scanned files.
+  check-inexistent-nodesets: warning
+
+  # Detect jobs that declare the same
+  # semaphore in both semaphore and run.
+  check-duplicate-semaphore: error
