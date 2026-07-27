@@ -12,6 +12,7 @@ import yaml
 
 
 class MsgSeverity(Enum):
+
     """Enum for message severity."""
 
     ERROR = "error"
@@ -21,6 +22,7 @@ class MsgSeverity(Enum):
 
 
 class MsgTypeColor(Enum):
+
     """Enum for message type colors."""
 
     ERROR = "\33[1;49;31m"
@@ -32,6 +34,7 @@ class MsgTypeColor(Enum):
 
 
 class ZuulObject(Enum):
+
     """Enum representing Zuul objects."""
 
     JOB = "job"
@@ -40,7 +43,7 @@ class ZuulObject(Enum):
     PRAGMA = "pragma"
     PROJECT = "project"
     QUEUE = "queue"
-    SECRET = "secret"  # noqa: S105
+    SECRET = "secret"  # noqa: S105 -- Zuul object name, not a credential
     SEMAPHORE = "semaphore"
     TEMPLATE = "project-template"
 
@@ -55,6 +58,7 @@ def get_zuul_schema(schema_file: str) -> dict:
     Returns:
     -------
         A dictionary representing the Zuul schema.
+
     """
     try:
         with pathlib.Path.open(schema_file, encoding="utf-8") as f:
@@ -79,6 +83,7 @@ def get_zuul_yaml_files(path: pathlib.Path) -> dict[str, list[pathlib.Path]]:
         dict[str, List[Path]]: A dictionary containing the keys 'good_yaml'(.yaml) and
         'bad_yaml'(.yml), where values are lists containing the Path objects for each
         of the file extensions found.
+
     """
     zuul_yaml_files = defaultdict(list)
 
@@ -112,6 +117,7 @@ def get_zuul_object_from_yaml(
     Returns:
     -------
         A list of dictionaries representing the Zuul objects found.
+
     """
     try:
         with pathlib.Path.open(zuul_yaml_file, encoding="utf-8") as f:
@@ -137,6 +143,7 @@ def get_playbook_paths_from_job(job: dict[str, str] | None) -> list[str | None]:
     Returns:
     -------
         A list of playbook paths.
+
     """
     path_keys = ["pre-run", "run", "post-run"]
 
@@ -154,6 +161,7 @@ def get_files_with_extension(path: str, extension: str) -> list[pathlib.Path]:
     Returns:
     -------
         A list of files with provided extension.
+
     """
     return list(pathlib.Path(path).rglob(f"*.{extension}"))
 
@@ -173,6 +181,7 @@ def encrypted_pkcs1_oaep_constructor(loader: yaml.SafeLoader, node: yaml.Node) -
     Returns:
     -------
         The value loaded from the YAML node.
+
     """
     if isinstance(node, yaml.ScalarNode):
         # Handle scalar node
@@ -191,7 +200,7 @@ def encrypted_pkcs1_oaep_constructor(loader: yaml.SafeLoader, node: yaml.Node) -
 
 
 def override_control_tags_constructor(
-    loader: yaml.SafeLoader, node: yaml.Node
+    loader: yaml.SafeLoader, node: yaml.Node,
 ) -> str | list | dict:
     """Handle the YAML !override and !inherit tags supported by Zuul.
 
@@ -201,12 +210,13 @@ def override_control_tags_constructor(
         node (yaml.Node): A YAML node.
 
     Raises:
-    -------
+    ------
         yaml.constructor.ConstructorError: Unsupported node type.
 
     Returns:
     -------
         The value loaded from the YAML node.
+
     """
     if isinstance(node, yaml.ScalarNode):
         return loader.construct_scalar(node)
@@ -234,6 +244,7 @@ def print_bold(msg: str, msg_type: MsgSeverity) -> None:
     Returns:
     -------
         None.
+
     """
     if msg_type == MsgSeverity.ERROR:
         print(f"\n{MsgTypeColor.ERROR.value}{msg}{MsgTypeColor.RESET.value}", file=sys.stderr)

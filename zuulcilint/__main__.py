@@ -45,6 +45,7 @@ def lint(file_path: str, schema: dict) -> int:
     Returns:
     -------
         The number of validation errors encountered.
+
     """
     print(f"{file_path}")
     errors = 0
@@ -83,6 +84,7 @@ def lint_single_yaml_file(file_path: pathlib.Path, schema: dict) -> int:
     Returns:
     -------
         The number of validation errors encountered.
+
     """
     return lint(file_path, schema=schema)
 
@@ -98,6 +100,7 @@ def lint_all_yaml_files(file_paths: list[pathlib.Path], schema: dict) -> int:
     Returns:
     -------
         The number of validation errors encountered.
+
     """
     return sum(lint_single_yaml_file(file_path, schema) for file_path in file_paths)
 
@@ -112,6 +115,7 @@ def lint_playbook_paths(zuul_yaml_files: list[pathlib.Path]) -> list[str]:
     Returns:
     -------
         A list of invalid playbook paths.
+
     """
     invalid_paths = []
     for file_path in zuul_yaml_files:
@@ -133,6 +137,7 @@ def get_all_zuul_yaml_files(files: list[str]) -> list[pathlib.Path]:
     Returns:
     -------
         A list of Zuul YAML/YML files.
+
     """
     zuul_yaml_files = defaultdict(list)
     for file in files:
@@ -165,9 +170,7 @@ def _apply_file_filters(
 
         if include_patterns and not any(fnmatch.fnmatch(rel, pat) for pat in include_patterns):
             return False
-        if exclude_patterns and any(fnmatch.fnmatch(rel, pat) for pat in exclude_patterns):
-            return False
-        return True
+        return not (exclude_patterns and any(fnmatch.fnmatch(rel, pat) for pat in exclude_patterns))
 
     return {key: [p for p in paths if should_include(p)] for key, paths in yaml_files_dict.items()}
 
@@ -186,6 +189,7 @@ def get_all_zuul_objects_by_type(
     Returns:
     -------
         A list of Zuul objects.
+
     """
     all_zuul_objects = []
     for file_path in zuul_yaml_files:
@@ -210,14 +214,31 @@ def print_warnings(
     Returns:
     -------
         None.
+
     """
     n_bad_yaml = len(results["bad_yaml_files"])
 
     # Only include rule findings configured at "warning" severity.
-    n_duplicate_jobs = len(results["duplicated_jobs"]) if rule_severities.get("check-duplicated-jobs") == "warning" else 0
-    n_nodeset = len(results["inexistent_nodesets"]) if rule_severities.get("check-inexistent-nodesets") == "warning" else 0
-    n_duplicate_semaphores = len(results["duplicate_semaphores"]) if rule_severities.get("check-duplicate-semaphore") == "warning" else 0
-    n_playbook_paths = len(results["playbook_paths"]) if rule_severities.get("check-playbook-paths") == "warning" else 0
+    n_duplicate_jobs = (
+        len(results["duplicated_jobs"])
+        if rule_severities.get("check-duplicated-jobs") == "warning"
+        else 0
+    )
+    n_nodeset = (
+        len(results["inexistent_nodesets"])
+        if rule_severities.get("check-inexistent-nodesets") == "warning"
+        else 0
+    )
+    n_duplicate_semaphores = (
+        len(results["duplicate_semaphores"])
+        if rule_severities.get("check-duplicate-semaphore") == "warning"
+        else 0
+    )
+    n_playbook_paths = (
+        len(results["playbook_paths"])
+        if rule_severities.get("check-playbook-paths") == "warning"
+        else 0
+    )
 
     n_total = n_duplicate_jobs + n_nodeset + n_duplicate_semaphores + n_playbook_paths
     if n_bad_yaml == 0 and n_total == 0:
@@ -261,6 +282,70 @@ def print_warnings(
             print(f"{entry}")
 
 
+def _resolve_rule_severities(rule_severities: dict) -> dict[str, str]:
+    """Resolve effective severity for each configurable rule, falling back to defaults."""
+    return {rule: rule_severities.get(rule, default) for rule, default in DEFAULT_RULES.items()}
+
+
+def _rule_counts(results: dict) -> dict[str, int]:
+    """Map each configurable rule to its finding count in results."""
+    return {
+        "check-duplicated-jobs": len(results["duplicated_jobs"]),
+        "check-inexistent-nodesets": len(results["inexistent_nodesets"]),
+        "check-duplicate-semaphore": len(results["duplicate_semaphores"]),
+        "check-playbook-paths": len(results["playbook_paths"]),
+    }
+
+
+def _count_at_severity(counts: dict[str, int], severities: dict[str, str], target: str) -> int:
+    """Sum finding counts for rules whose effective severity matches target."""
+    return sum(count for rule, count in counts.items() if severities[rule] == target)
+
+
+def _build_extra_message(
+    counts: dict[str, int],
+    severities: dict[str, str],
+    n_bad_yaml: int,
+) -> str:
+    """Build the warnings-as-errors detail message appended to the failure summary."""
+    extra_msg = ""
+    if n_bad_yaml:
+        extra_msg += f"\nFile extension errors: {n_bad_yaml}"
+    if severities["check-duplicated-jobs"] == "warning" and counts["check-duplicated-jobs"]:
+        extra_msg += f"\nDuplicated jobs errors: {counts['check-duplicated-jobs']}"
+    if severities["check-inexistent-nodesets"] == "warning" and counts["check-inexistent-nodesets"]:
+        extra_msg += f"\nInexistent nodesets errors: {counts['check-inexistent-nodesets']}"
+    return extra_msg
+
+
+def _build_error_message(
+    total_errs: int,
+    counts: dict[str, int],
+    severities: dict[str, str],
+    n_yaml_errors: int,
+) -> str:
+    """Build the failure summary message."""
+    err_msg = f"Total errors: {total_errs}\n"
+
+    if severities["check-duplicate-semaphore"] == "error" and counts["check-duplicate-semaphore"]:
+        err_msg += f"Duplicated semaphores: {counts['check-duplicate-semaphore']}"
+    if severities["check-playbook-paths"] == "error" and counts["check-playbook-paths"]:
+        err_msg += f"\nPlaybook path errors: {counts['check-playbook-paths']}"
+    if n_yaml_errors:
+        err_msg += f"\nYAML validation errors: {n_yaml_errors}"
+
+    # Findings from default-warning rules promoted to error via config.
+    n_promoted = 0
+    if severities["check-duplicated-jobs"] == "error":
+        n_promoted += counts["check-duplicated-jobs"]
+    if severities["check-inexistent-nodesets"] == "error":
+        n_promoted += counts["check-inexistent-nodesets"]
+    if n_promoted:
+        err_msg += f"\nPromoted warning errors: {n_promoted}"
+
+    return err_msg
+
+
 def print_results(
     results: dict,
     warnings_as_errors,
@@ -280,51 +365,23 @@ def print_results(
     Returns:
     -------
         None.
-    """
-    sev_dup_jobs   = rule_severities.get("check-duplicated-jobs",    DEFAULT_RULES["check-duplicated-jobs"])
-    sev_nodesets   = rule_severities.get("check-inexistent-nodesets", DEFAULT_RULES["check-inexistent-nodesets"])
-    sev_semaphores = rule_severities.get("check-duplicate-semaphore", DEFAULT_RULES["check-duplicate-semaphore"])
-    sev_playbooks  = rule_severities.get("check-playbook-paths",      DEFAULT_RULES["check-playbook-paths"])
 
+    """
+    severities = _resolve_rule_severities(rule_severities)
+    counts = _rule_counts(results)
     n_yaml_errors = results["yaml_schema_errors"]
     n_bad_yaml = len(results["bad_yaml_files"])
-    n_dup_jobs = len(results["duplicated_jobs"])
-    n_nodesets = len(results["inexistent_nodesets"])
-    n_semaphores = len(results["duplicate_semaphores"])
-    n_playbooks = len(results["playbook_paths"])
 
-    # Findings at "error" severity contribute to the error count.
-    total_errs = n_yaml_errors
-    if sev_dup_jobs == "error":
-        total_errs += n_dup_jobs
-    if sev_nodesets == "error":
-        total_errs += n_nodesets
-    if sev_semaphores == "error":
-        total_errs += n_semaphores
-    if sev_playbooks == "error":
-        total_errs += n_playbooks
-
-    # Findings at "warning" severity (bad_yaml_files is always a warning).
-    total_warnings = n_bad_yaml
-    if sev_dup_jobs == "warning":
-        total_warnings += n_dup_jobs
-    if sev_nodesets == "warning":
-        total_warnings += n_nodesets
-    if sev_semaphores == "warning":
-        total_warnings += n_semaphores
-    if sev_playbooks == "warning":
-        total_warnings += n_playbooks
+    # Findings at "error" severity contribute to the error count; "warning"
+    # severity (plus bad_yaml_files, which is always a warning) to the warning count.
+    total_errs = n_yaml_errors + _count_at_severity(counts, severities, "error")
+    total_warnings = n_bad_yaml + _count_at_severity(counts, severities, "warning")
 
     extra_msg = ""
     # --warnings-as-errors flag has higher precedence than --ignore-warnings.
     if warnings_as_errors:
         total_errs += total_warnings
-        if n_bad_yaml:
-            extra_msg += f"\nFile extension errors: {n_bad_yaml}"
-        if sev_dup_jobs == "warning" and n_dup_jobs:
-            extra_msg += f"\nDuplicated jobs errors: {n_dup_jobs}"
-        if sev_nodesets == "warning" and n_nodesets:
-            extra_msg += f"\nInexistent nodesets errors: {n_nodesets}"
+        extra_msg = _build_extra_message(counts, severities, n_bad_yaml)
         print_warnings(results=results, rule_severities=rule_severities, severity=MsgSeverity.ERROR)
     elif not ignore_warnings:
         print_warnings(results=results, rule_severities=rule_severities)
@@ -334,39 +391,13 @@ def print_results(
         sys.exit(0)
 
     zuul_utils.print_bold("Failed", MsgSeverity.ERROR)
-    err_msg = f"Total errors: {total_errs}\n"
-
-    if sev_semaphores == "error" and n_semaphores:
-        err_msg += f"Duplicated semaphores: {n_semaphores}"
-    if sev_playbooks == "error" and n_playbooks:
-        err_msg += f"\nPlaybook path errors: {n_playbooks}"
-    if n_yaml_errors:
-        err_msg += f"\nYAML validation errors: {n_yaml_errors}"
-
-    # Findings from default-warning rules promoted to error via config.
-    n_promoted = 0
-    if sev_dup_jobs == "error":
-        n_promoted += n_dup_jobs
-    if sev_nodesets == "error":
-        n_promoted += n_nodesets
-    if n_promoted:
-        err_msg += f"\nPromoted warning errors: {n_promoted}"
-
+    err_msg = _build_error_message(total_errs, counts, severities, n_yaml_errors)
     zuul_utils.print_bold(f"{err_msg + extra_msg}", MsgSeverity.ERROR)
     sys.exit(1)
 
 
-def main(argv: list[str] | None = None):
-    """Parse command-line arguments and run the Zuul linter on the specified file(s).
-
-    Args:
-    ----
-        argv: Optional list of arguments. Defaults to sys.argv[1:] when None.
-
-    Returns
-    -------
-        None.
-    """
+def _build_arg_parser() -> argparse.ArgumentParser:
+    """Build the zuulcilint command-line argument parser."""
     parser = argparse.ArgumentParser(prog="zuulcilint")
     parser.add_argument(
         "--version",
@@ -404,12 +435,140 @@ def main(argv: list[str] | None = None):
         default=None,
         metavar="PATH",
     )
+    return parser
 
-    args = parser.parse_args(argv)
+
+def _warn_excluded_explicit_files(files: list[str], exclude_pats: list[str]) -> None:
+    """Warn when an explicitly passed file (not a directory) matches an exclude pattern.
+
+    Silently dropping it would be misleading.
+    """
+    cwd = pathlib.Path.cwd()
+    for raw in files:
+        p = pathlib.Path(raw)
+        if not p.is_file():
+            continue
+        try:
+            rel = p.relative_to(cwd).as_posix()
+        except ValueError:
+            rel = str(p)
+        if any(fnmatch.fnmatch(rel, pat) for pat in exclude_pats):
+            zuul_utils.print_bold(
+                f"warning: {rel} explicitly passed but matches an exclude pattern — skipping",
+                MsgSeverity.WARNING,
+            )
+
+
+def _run_playbook_check(
+    zuul_good_yaml: list[pathlib.Path],
+    *,
+    check_playbook_paths: bool,
+    rule_severities: dict,
+) -> tuple[list[str], dict]:
+    """Run the playbook-path check if enabled.
+
+    Runs if the CLI flag is given OR if config explicitly enables it (non-disable
+    severity). The CLI flag always wins: even if config says "disable", the flag
+    forces the check to run at "error" severity.
+
+    Returns the findings and the (possibly overridden) rule severities.
+    """
+    default_playbook_sev = DEFAULT_RULES["check-playbook-paths"]
+    sev_playbook = rule_severities.get("check-playbook-paths", default_playbook_sev)
+    run_check = check_playbook_paths or sev_playbook != "disable"
+    if check_playbook_paths and sev_playbook == "disable":
+        rule_severities = dict(rule_severities)
+        rule_severities["check-playbook-paths"] = "error"
+
+    if not run_check:
+        return [], rule_severities
+
+    zuul_utils.print_bold("Checking playbook paths", MsgSeverity.INFO)
+    invalid_playbook_paths = lint_playbook_paths(zuul_good_yaml)
+    if not invalid_playbook_paths:
+        print("No invalid playbook paths")
+        return [], rule_severities
+
+    zuul_utils.print_bold("Invalid playbook paths:", MsgSeverity.ERROR)
+    for path in invalid_playbook_paths:
+        print(f"{path}")
+    return [f"invalid playbook path: {p}" for p in invalid_playbook_paths], rule_severities
+
+
+def _run_duplicated_jobs_check(zuul_good_yaml: list[pathlib.Path], rule_severities: dict):
+    """Run the duplicated-jobs check, skipping it if disabled in config."""
+    if rule_severities.get("check-duplicated-jobs") == "disable":
+        return []
+
+    zuul_utils.print_bold("Checking for duplicate jobs", MsgSeverity.INFO)
+    jobs_dict = {}
+    for yaml_file in zuul_good_yaml:
+        jobs_dict[yaml_file] = get_all_zuul_objects_by_type([yaml_file], ZuulObject.JOB)
+
+    duplicated_jobs = zuul_checker.check_duplicated_jobs(jobs_dict)
+    if duplicated_jobs:
+        for job in duplicated_jobs:
+            print(f"{job}")
+    else:
+        print("No duplicate jobs found")
+    return duplicated_jobs
+
+
+def _run_inexistent_nodesets_check(zuul_good_yaml: list[pathlib.Path], rule_severities: dict):
+    """Run the inexistent-nodesets check, skipping it if disabled in config."""
+    if rule_severities.get("check-inexistent-nodesets") == "disable":
+        return []
+
+    zuul_utils.print_bold("Checking for inexistent nodesets", MsgSeverity.INFO)
+    inexistent_nodesets = zuul_checker.check_inexistent_nodesets(
+        get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.NODESET),
+        get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.JOB),
+    )
+    if inexistent_nodesets:
+        for nodeset in inexistent_nodesets:
+            print(f"{nodeset}")
+    else:
+        print("No inexistent nodesets found")
+    return inexistent_nodesets
+
+
+def _run_duplicate_semaphore_check(
+    zuul_good_yaml: list[pathlib.Path],
+    rule_severities: dict,
+) -> list:
+    """Run the duplicate-semaphore check, skipping it if disabled in config."""
+    if rule_severities.get("check-duplicate-semaphore") == "disable":
+        return []
+
+    zuul_utils.print_bold("Checking for duplicate semaphore", MsgSeverity.INFO)
+    duplicate_semaphore = zuul_checker.check_duplicate_semaphore(
+        get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.JOB),
+    )
+    if duplicate_semaphore:
+        for semaphore in duplicate_semaphore:
+            print(f"{semaphore}")
+    else:
+        print("No duplicate semaphore found")
+    return list(duplicate_semaphore)
+
+
+def main(argv: list[str] | None = None):
+    """Parse command-line arguments and run the Zuul linter on the specified file(s).
+
+    Args:
+    ----
+        argv: Optional list of arguments. Defaults to sys.argv[1:] when None.
+
+    Returns:
+    -------
+        None.
+
+    """
+    args = _build_arg_parser().parse_args(argv)
 
     try:
         config = load_config(args.config)
-    except (FileNotFoundError, ValueError) as exc:
+    except (FileNotFoundError, TypeError, ValueError) as exc:
         zuul_utils.print_bold(f"Config error: {exc}", MsgSeverity.ERROR)
         sys.exit(1)
 
@@ -424,24 +583,8 @@ def main(argv: list[str] | None = None):
     include_pats: list[str] = config.get("include", [])
     exclude_pats: list[str] = config.get("exclude", [])
     if include_pats or exclude_pats:
-        # Warn when the user explicitly passed a file (not a directory) that
-        # matches an exclude pattern — silently dropping it would be misleading.
         if exclude_pats:
-            cwd = pathlib.Path.cwd()
-            for raw in args.file:
-                p = pathlib.Path(raw)
-                if p.is_file():
-                    try:
-                        rel = p.relative_to(cwd).as_posix()
-                    except ValueError:
-                        rel = str(p)
-                    if any(fnmatch.fnmatch(rel, pat) for pat in exclude_pats):
-                        zuul_utils.print_bold(
-                            f"warning: {rel} explicitly passed but matches an "
-                            f"exclude pattern — skipping",
-                            MsgSeverity.WARNING,
-                        )
-
+            _warn_excluded_explicit_files(args.file, exclude_pats)
         all_zuul_yaml_files = _apply_file_filters(
             all_zuul_yaml_files,
             include_pats,
@@ -465,72 +608,21 @@ def main(argv: list[str] | None = None):
     # Lint all Zuul YAML files
     results["yaml_schema_errors"] = lint_all_yaml_files(zuul_good_yaml, schema)
 
-    # Check playbook paths.
-    # Runs if the CLI flag is given OR if config explicitly enables it (non-disable severity).
-    # CLI flag always wins: even if config says "disable", the flag forces the check to run
-    # at "error" severity.
-    sev_playbook = rule_severities.get("check-playbook-paths", DEFAULT_RULES["check-playbook-paths"])
-    run_playbook_check = args.check_playbook_paths or sev_playbook != "disable"
-    # When the CLI flag forces the check but config says "disable", treat as "error".
-    if args.check_playbook_paths and sev_playbook == "disable":
-        rule_severities = dict(rule_severities)
-        rule_severities["check-playbook-paths"] = "error"
+    results["playbook_paths"], rule_severities = _run_playbook_check(
+        zuul_good_yaml,
+        check_playbook_paths=args.check_playbook_paths,
+        rule_severities=rule_severities,
+    )
+    results["duplicated_jobs"] = _run_duplicated_jobs_check(zuul_good_yaml, rule_severities)
+    results["inexistent_nodesets"] = _run_inexistent_nodesets_check(
+        zuul_good_yaml,
+        rule_severities,
+    )
+    results["duplicate_semaphores"] = _run_duplicate_semaphore_check(
+        zuul_good_yaml,
+        rule_severities,
+    )
 
-    if run_playbook_check:
-        zuul_utils.print_bold("Checking playbook paths", MsgSeverity.INFO)
-        invalid_playbook_paths = lint_playbook_paths(zuul_good_yaml)
-        if invalid_playbook_paths:
-            results["playbook_paths"] = [f"invalid playbook path: {p}" for p in invalid_playbook_paths]
-            zuul_utils.print_bold("Invalid playbook paths:", MsgSeverity.ERROR)
-            for path in invalid_playbook_paths:
-                print(f"{path}")
-        else:
-            print("No invalid playbook paths")
-
-    # Check duplicated jobs (skip if disabled in config)
-    if rule_severities.get("check-duplicated-jobs") != "disable":
-        zuul_utils.print_bold("Checking for duplicate jobs", MsgSeverity.INFO)
-        jobs_dict = {}
-        for yaml_file in zuul_good_yaml:
-            jobs_dict[yaml_file] = get_all_zuul_objects_by_type([yaml_file], ZuulObject.JOB)
-
-        duplicated_jobs = zuul_checker.check_duplicated_jobs(jobs_dict)
-
-        if duplicated_jobs:
-            for job in duplicated_jobs:
-                print(f"{job}")
-        else:
-            print("No duplicate jobs found")
-        results["duplicated_jobs"] = duplicated_jobs
-
-    # Check for inexistent nodesets (skip if disabled in config)
-    if rule_severities.get("check-inexistent-nodesets") != "disable":
-        zuul_utils.print_bold("Checking for inexistent nodesets", MsgSeverity.INFO)
-        inexistent_nodesets = zuul_checker.check_inexistent_nodesets(
-            get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.NODESET),
-            get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.JOB),
-        )
-        if inexistent_nodesets:
-            for nodeset in inexistent_nodesets:
-                print(f"{nodeset}")
-        else:
-            print("No inexistent nodesets found")
-        results["inexistent_nodesets"] = inexistent_nodesets
-
-    # Check for duplicate semaphore in job and job.run (skip if disabled in config)
-    if rule_severities.get("check-duplicate-semaphore") != "disable":
-        zuul_utils.print_bold("Checking for duplicate semaphore", MsgSeverity.INFO)
-        duplicate_semaphore = zuul_checker.check_duplicate_semaphore(
-            get_all_zuul_objects_by_type(zuul_good_yaml, ZuulObject.JOB),
-        )
-        if duplicate_semaphore:
-            for semaphore in duplicate_semaphore:
-                print(f"{semaphore}")
-        else:
-            print("No duplicate semaphore found")
-        results["duplicate_semaphores"] = list(duplicate_semaphore)
-
-    # Print results
     print_results(
         results,
         effective_wae,

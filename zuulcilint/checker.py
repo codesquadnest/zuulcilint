@@ -15,6 +15,7 @@ def check_job_playbook_paths(job: dict[str, dict | list[str | dict]]) -> list[st
     Returns:
     -------
         A list of invalid playbook paths.
+
     """
     invalid_paths = []
 
@@ -28,19 +29,20 @@ def check_job_playbook_paths(job: dict[str, dict | list[str | dict]]) -> list[st
             paths = [paths]
 
         for path in paths:
-            if isinstance(path, str):
-                if not pathlib.Path(path).exists():
-                    invalid_paths.append(path)
-            if isinstance(path, dict):
-                if "name" in path:
-                    if not pathlib.Path(path["name"]).exists():
-                        invalid_paths.append(path["name"])
+            if isinstance(path, str) and not pathlib.Path(path).exists():
+                invalid_paths.append(path)
+            if (
+                isinstance(path, dict)
+                and "name" in path
+                and not pathlib.Path(path["name"]).exists()
+            ):
+                invalid_paths.append(path["name"])
 
     return invalid_paths
 
 
 def check_duplicated_jobs(
-    jobs: dict[pathlib.Path, list[dict | None]]
+    jobs: dict[pathlib.Path, list[dict | None]],
 ) -> set[dict[str, str] | None]:
     """Check that all jobs are unique in different Zuul YAML files.
 
@@ -51,6 +53,7 @@ def check_duplicated_jobs(
     Returns:
     -------
         A set of duplicated jobs.
+
     """
     seen_items = set()
     duplicated_items = set()
@@ -58,7 +61,7 @@ def check_duplicated_jobs(
 
     for joblist in jobs.values():
         try:
-            sublist_set = set(job["job"]["name"] for job in joblist)
+            sublist_set = {job["job"]["name"] for job in joblist}
         except KeyError:
             continue
         for job in sublist_set:
@@ -68,6 +71,50 @@ def check_duplicated_jobs(
         unique_items.update(sublist_set)
 
     return duplicated_items
+
+
+def _collect_known_nodeset_names(nodesets: list[dict]) -> set[str]:
+    """Collect the names of all defined nodesets and their nodes."""
+    nodeset_list = set()
+    for nodeset in nodesets:
+        nodeset_list.add(nodeset["nodeset"]["name"])
+        try:
+            node_list = nodeset["nodeset"]["nodes"]
+        except KeyError:
+            continue
+        for node in node_list:
+            if isinstance(node["name"], str):
+                nodeset_list.add(node["name"])
+            if isinstance(node["name"], list):
+                for node_name in node["name"]:
+                    nodeset_list.add(node_name)
+    return nodeset_list
+
+
+def _job_nodesets(job: dict) -> list[dict] | None:
+    """Return the nodeset entries referenced by a job, or None if it has none."""
+    try:
+        if isinstance(job["job"]["nodeset"], str):
+            return [{"name": job["job"]["nodeset"]}]
+        return job["job"]["nodeset"]["nodes"]
+    except KeyError:
+        return None
+
+
+def _record_inexistent_nodeset(
+    nodeset: dict | str,
+    job_nodesets: list[dict] | dict,
+    nodeset_list: set[str],
+    inexistent_nodesets: set[str],
+) -> None:
+    """Add nodeset's name to inexistent_nodesets if it isn't a known nodeset."""
+    try:
+        if nodeset["name"] not in nodeset_list:
+            inexistent_nodesets.add(nodeset["name"])
+    except TypeError:
+        name = job_nodesets.get("name", None)
+        if name and name not in nodeset_list:
+            inexistent_nodesets.add(job_nodesets["name"])
 
 
 def check_inexistent_nodesets(
@@ -84,49 +131,23 @@ def check_inexistent_nodesets(
     Returns:
     -------
         A list of inexistent nodesets.
+
     """
-    nodeset_list = set()
-    for nodeset in nodesets:
-        nodeset_list.add(nodeset["nodeset"]["name"])
-        try:
-            node_list = nodeset["nodeset"]["nodes"]
-        except KeyError:
-            continue
-        for node in node_list:
-            if isinstance(node["name"], str):
-                nodeset_list.add(node["name"])
-            if isinstance(node["name"], list):
-                for node_name in node["name"]:
-                    nodeset_list.add(node_name)
+    nodeset_list = _collect_known_nodeset_names(nodesets)
     inexistent_nodesets = set()
 
     for job in jobs:
-        try:
-            if isinstance(job["job"]["nodeset"], str):
-                nodeset = {}
-                nodeset["name"] = job["job"]["nodeset"]
-                job_nodesets = [nodeset]
-            else:
-                job_nodesets = job["job"]["nodeset"]["nodes"]
-        except KeyError:
+        job_nodesets = _job_nodesets(job)
+        if job_nodesets is None:
             continue
         for nodeset in job_nodesets:
-            try:
-                if nodeset["name"] not in nodeset_list:
-                    inexistent_nodesets.add(nodeset["name"])
-            except TypeError:
-                if (
-                    job_nodesets.get("name", None)
-                    and job_nodesets.get("name", None) not in nodeset_list
-                ):
-                    inexistent_nodesets.add(job_nodesets["name"])
+            _record_inexistent_nodeset(nodeset, job_nodesets, nodeset_list, inexistent_nodesets)
 
     return inexistent_nodesets
 
 
 def check_duplicate_semaphore(jobs: list[dict | None]) -> set[dict[str, str] | None]:
-    """Check that when a job has a semaphore, the run entry does not have a semaphore
-    with the same name.
+    """Check for jobs and their run entries sharing a semaphore with the same name.
 
     Args:
     ----
@@ -135,6 +156,7 @@ def check_duplicate_semaphore(jobs: list[dict | None]) -> set[dict[str, str] | N
     Returns:
     -------
         A set of duplicated semaphores.
+
     """
     duplicate_semaphores = set()
     _job_semaphore_list = {}
@@ -162,24 +184,22 @@ def check_duplicate_semaphore(jobs: list[dict | None]) -> set[dict[str, str] | N
         # Collect run semaphores
         if isinstance(job["job"].get("run"), str):
             continue
-        else:
-            run_entries = job["job"].get("run", [])
+        run_entries = job["job"].get("run", [])
         if isinstance(run_entries, dict):  # Single run entry case
             run_entries = [run_entries]
         for run in run_entries:
             if isinstance(run, str):
                 # When run entry is a string this means it's a playbook
                 continue
-            else:
-                run_semaphores = run.get("semaphores", [])
+            run_semaphores = run.get("semaphores", [])
             if isinstance(run_semaphores, str):
                 _run_semaphore_list[job_name].append(run_semaphores)
             else:
                 _run_semaphore_list[job_name].extend(run_semaphores)
 
     # Find duplicate semaphores
-    for job_name in _job_semaphore_list.keys():
-        job_semaphores_set = set(_job_semaphore_list[job_name])
+    for job_name, job_semaphores in _job_semaphore_list.items():
+        job_semaphores_set = set(job_semaphores)
         run_semaphores_set = set(_run_semaphore_list[job_name])
         duplicate_semaphores.update(job_semaphores_set & run_semaphores_set)
 

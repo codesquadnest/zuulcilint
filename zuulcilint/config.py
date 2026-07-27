@@ -15,7 +15,7 @@ _CONFIG_SCHEMA: dict = json.loads(_CONFIG_SCHEMA_PATH.read_text(encoding="utf-8"
 # Flat keys that are valid at the root of a config file (also used to detect
 # ambiguous configs that mix a 'zuulcilint:' wrapper with flat-format keys).
 _KNOWN_FLAT_KEYS: frozenset[str] = frozenset(
-    {"version", "include", "exclude", "warnings-as-errors", "rules", "select", "ignore"}
+    {"version", "include", "exclude", "warnings-as-errors", "rules", "select", "ignore"},
 )
 
 VALID_RULES = frozenset(
@@ -24,7 +24,7 @@ VALID_RULES = frozenset(
         "check-duplicated-jobs",
         "check-inexistent-nodesets",
         "check-duplicate-semaphore",
-    }
+    },
 )
 
 VALID_SEVERITIES = frozenset({"error", "warning", "disable"})
@@ -64,23 +64,26 @@ def _load_and_validate(path: pathlib.Path) -> dict:
         with pathlib.Path.open(path, encoding="utf-8") as f:
             raw = yaml.safe_load(f)
     except yaml.YAMLError as exc:
-        raise ValueError(f"{path}: invalid YAML — {exc}") from exc
+        msg = f"{path}: invalid YAML — {exc}"
+        raise ValueError(msg) from exc
 
     if raw is None:
         raw = {}
 
     if not isinstance(raw, dict):
-        raise ValueError(f"{path}: config root must be a mapping, got {type(raw).__name__}")
+        msg = f"{path}: config root must be a mapping, got {type(raw).__name__}"
+        raise TypeError(msg)
 
     # Support optional top-level 'zuulcilint:' wrapper key.
     # Reject ambiguous files that mix both forms.
     has_wrapper = "zuulcilint" in raw
     flat_keys = set(raw) - {"zuulcilint"}
     if has_wrapper and flat_keys & _KNOWN_FLAT_KEYS:
-        raise ValueError(
+        msg = (
             f"{path}: ambiguous config — contains both a 'zuulcilint:' wrapper key "
             f"and flat keys ({flat_keys & _KNOWN_FLAT_KEYS})"
         )
+        raise ValueError(msg)
     if has_wrapper:
         raw = raw["zuulcilint"] or {}
 
@@ -89,14 +92,14 @@ def _load_and_validate(path: pathlib.Path) -> dict:
     schema_errors = sorted(validator.iter_errors(raw), key=lambda e: list(e.path))
     if schema_errors:
         messages = "; ".join(e.message for e in schema_errors)
-        raise ValueError(f"{path}: invalid config — {messages}")
+        msg = f"{path}: invalid config — {messages}"
+        raise ValueError(msg)
 
     # Semantic validation: version value.
     # Rule names and severity values are validated by the JSON schema above.
     if raw.get("version") != 1:
-        raise ValueError(
-            f"{path}: unsupported version {raw.get('version')!r} — only version 1 is supported"
-        )
+        msg = f"{path}: unsupported version {raw.get('version')!r} — only version 1 is supported"
+        raise ValueError(msg)
 
     return raw
 
@@ -168,20 +171,25 @@ def load_config(config_path: str | None = None) -> dict:
     Raises:
     ------
         FileNotFoundError: If an explicit --config path does not exist or is a directory.
+        TypeError: If the config file's root is not a mapping.
         ValueError: If the config file is structurally invalid.
+
     """
     path, source = _resolve_config_path(config_path)
 
     if path is None:
-        print("[zuulcilint] config: no config file found — using built-in defaults", file=sys.stderr)
+        print("[zuulcilint] config: no config file found — using defaults", file=sys.stderr)
         return _default_config()
 
     print(f"[zuulcilint] config: loading {source} → {path}", file=sys.stderr)
     try:
         merged = _default_config()
         _merge(merged, _load_and_validate(path))
-        return merged
     except IsADirectoryError as exc:
-        raise FileNotFoundError(f"Config path is a directory, not a file: {path}") from exc
+        msg = f"Config path is a directory, not a file: {path}"
+        raise FileNotFoundError(msg) from exc
     except FileNotFoundError:
-        raise FileNotFoundError(f"Config file not found: {path}") from None
+        msg = f"Config file not found: {path}"
+        raise FileNotFoundError(msg) from None
+    else:
+        return merged
