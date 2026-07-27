@@ -7,9 +7,8 @@ from collections import Counter
 
 import pytest
 
-from zuulcilint.config import DEFAULT_RULES, VALID_RULES, load_config
 from zuulcilint.__main__ import main
-
+from zuulcilint.config import DEFAULT_RULES, VALID_RULES, load_config
 
 # ---------------------------------------------------------------------------
 # load_config unit tests
@@ -36,7 +35,7 @@ def test_load_config_explicit_path(tmp_path):
             version: 1
             rules:
               check-duplicate-semaphore: warning
-        """)
+        """),
     )
     config = load_config(str(cfg))
     assert config["rules"]["check-duplicate-semaphore"] == "warning"
@@ -73,7 +72,7 @@ def test_load_config_flat_format(tmp_path):
             warnings-as-errors: true
             rules:
               check-inexistent-nodesets: error
-        """)
+        """),
     )
     config = load_config(str(cfg))
     assert config["warnings-as-errors"] is True
@@ -89,7 +88,7 @@ def test_load_config_wrapped_format(tmp_path):
               version: 1
               rules:
                 check-duplicated-jobs: error
-        """)
+        """),
     )
     config = load_config(str(cfg))
     assert config["rules"]["check-duplicated-jobs"] == "error"
@@ -104,7 +103,7 @@ def test_load_config_ambiguous_format_raises(tmp_path):
             zuulcilint:
               rules:
                 check-duplicated-jobs: error
-        """)
+        """),
     )
     with pytest.raises(ValueError, match="ambiguous"):
         load_config(str(cfg))
@@ -197,11 +196,11 @@ def test_load_config_priority_explicit_beats_repo(tmp_path, monkeypatch):
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / ".zuulcilint.yaml").write_text(
-        "version: 1\nrules:\n  check-duplicated-jobs: error\n"
+        "version: 1\nrules:\n  check-duplicated-jobs: error\n",
     )
     explicit = tmp_path / "explicit.yaml"
     explicit.write_text(
-        "version: 1\nrules:\n  check-duplicated-jobs: disable\n"
+        "version: 1\nrules:\n  check-duplicated-jobs: disable\n",
     )
 
     monkeypatch.chdir(repo)
@@ -219,10 +218,10 @@ def test_load_config_priority_repo_beats_home(tmp_path, monkeypatch):
     repo.mkdir()
 
     (home / ".zuulcilint.yaml").write_text(
-        "version: 1\nrules:\n  check-duplicated-jobs: error\n"
+        "version: 1\nrules:\n  check-duplicated-jobs: error\n",
     )
     (repo / ".zuulcilint.yaml").write_text(
-        "version: 1\nrules:\n  check-duplicated-jobs: disable\n"
+        "version: 1\nrules:\n  check-duplicated-jobs: disable\n",
     )
 
     monkeypatch.setenv("HOME", str(home))
@@ -243,7 +242,7 @@ def test_load_config_include_exclude(tmp_path):
               - zuul.d/**
             exclude:
               - tests/**
-        """)
+        """),
     )
     config = load_config(str(cfg))
     assert config["include"] == ["zuul.d/**"]
@@ -273,7 +272,7 @@ def test_cli_config_disable_duplicated_jobs(tmp_path, capsys):
     assert "duplicate jobs" not in capsys.readouterr().out.lower()
 
 
-def test_cli_config_promote_duplicated_jobs_to_error(tmp_path, capsys):
+def test_cli_config_promote_duplicated_jobs_to_error(tmp_path):
     """check-duplicated-jobs: error causes a non-zero exit when duplicates exist."""
     cfg = tmp_path / "cfg.yaml"
     cfg.write_text("version: 1\nrules:\n  check-duplicated-jobs: error\n")
@@ -282,7 +281,7 @@ def test_cli_config_promote_duplicated_jobs_to_error(tmp_path, capsys):
     assert exc_info.value.code != 0
 
 
-def test_cli_config_warnings_as_errors_from_config(tmp_path, capsys):
+def test_cli_config_warnings_as_errors_from_config(tmp_path):
     """warnings-as-errors: true in config behaves like --warnings-as-errors flag."""
     cfg = tmp_path / "cfg.yaml"
     cfg.write_text("version: 1\nwarnings-as-errors: true\n")
@@ -318,7 +317,7 @@ def test_example_config_is_valid(tmp_path):
               check-duplicated-jobs: warning
               check-inexistent-nodesets: warning
               check-duplicate-semaphore: error
-        """)
+        """),
     )
     config = load_config(str(cfg))
     assert config["version"] == 1
@@ -342,7 +341,7 @@ def test_example_config_produces_same_output_as_no_config(tmp_path, monkeypatch,
               check-duplicated-jobs: warning
               check-inexistent-nodesets: warning
               check-duplicate-semaphore: error
-        """)
+        """),
     )
     monkeypatch.setenv("HOME", str(tmp_path))
     with pytest.raises(SystemExit) as exc_default:

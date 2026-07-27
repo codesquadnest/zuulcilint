@@ -56,34 +56,36 @@ extend-ignore = "E203,E501"
 addopts = ["-ra", "--cov=zuulcilint", "--cov-report=term-missing"]
 testpaths = ["tests"]
 
-[toolpytest.cov]
+[tool.coverage.report]
 fail_under = 80
 
-select = ["ALL"]
+[tool.ruff]
 target-version = "py310"
 # Same as Black.
 line-length = 100
 
-[lint.per-file-ignores]
-"tests/**/*.py" = ["S101"] # Use of assert detected.
-
-[lint.mccabe]
-# Implicit 10 is too low for our codebase, even black uses 18 as default.
-max-complexity = 20
-
-[lint.flake8-builtins]
-builtins-ignorelist = ["id"]
-
-[lint.ignore]
+[tool.ruff.lint]
+select = ["ALL"]
 ignore = [
   "D211", # No blank lines allowed after function docstring
   "D213", # Multi-line docstring summary should start at the second line
+  "CPY", # No per-file copyright header convention; LICENSE covers the whole repo
   # temporary disabled until we fix them:
   "T201",
   "ANN",
   "S603", # subprocess call - check for execution of untrusted input
   "S607", # start process with a partial path
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"] # Use of assert detected.
+
+[tool.ruff.lint.mccabe]
+# Implicit 10 is too low for our codebase, even black uses 18 as default.
+max-complexity = 20
+
+[tool.ruff.lint.flake8-builtins]
+builtins-ignorelist = ["id"]
 
 # Configurations for tox
 [tool.tox]

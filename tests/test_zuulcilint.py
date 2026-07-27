@@ -9,13 +9,8 @@ import pytest
 
 
 def test_invalid():
-    """Test that the linter correctly detects errors in an invalid Zuul YAML file.
-
-    Raises
-    ------
-        pytest.fail: If the linter does not fail as expected.
-    """
-    try:
+    """Test that the linter correctly detects errors in an invalid Zuul YAML file."""
+    with pytest.raises(subprocess.CalledProcessError) as exc_info:
         subprocess.run(
             [
                 "python3",
@@ -26,8 +21,7 @@ def test_invalid():
             check=True,
             capture_output=True,
         )
-    except subprocess.CalledProcessError as e:
-        assert "Validation error:" in e.stderr.decode("utf-8")
+    assert "Validation error:" in exc_info.value.stderr.decode("utf-8")
 
 
 def test_warnings():
@@ -35,6 +29,7 @@ def test_warnings():
     result = subprocess.run(
         ["python3", "-m", "zuulcilint", "tests/zuul_data"],
         capture_output=True,
+        check=False,
     )
 
     assert "Found 5 inexistent nodesets" in result.stdout.decode("utf-8")
@@ -48,6 +43,7 @@ def test_playbook_errors():
     Raises
     ------
     pytest.fail: If the linter does not detect errors as expected.
+
     """
     try:
         result = subprocess.run(
@@ -59,6 +55,7 @@ def test_playbook_errors():
                 "tests/zuul_data",
             ],
             capture_output=True,
+            check=False,
         )
         assert result.returncode != 0
         assert "Playbook path errors: 9" in result.stderr.decode("utf-8")

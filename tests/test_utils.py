@@ -17,6 +17,7 @@ def setup_tmp_list_of_files():
     Returns
     -------
         A Path object representing the temporary directory.
+
     """
     tmp_path = pathlib.Path(tempfile.mkdtemp())
     for i in range(2):
@@ -31,6 +32,7 @@ def setup_zuul_obj_yaml(obj_type: ZuulObject):
     Returns
     -------
         A Path object representing the temporary directory.
+
     """
     tmp_path = pathlib.Path(tempfile.mkdtemp())
     with pathlib.Path.open(tmp_path / f"{obj_type.value}.yaml", "w", encoding="utf-8") as f:
