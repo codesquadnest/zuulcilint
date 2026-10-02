@@ -203,3 +203,29 @@ def test_check_duplicated_semaphores_multi_job():
         },
     ]
     assert zuulcilint_checker.check_duplicate_semaphore(jobs) == {"semaphore1", "semaphore2"}
+
+
+def test_check_duplicated_semaphores_dict_and_other_run_types():
+    """Test that dict-style semaphores and pre/post/cleanup-run playbooks are checked."""
+    jobs = [
+        {
+            "job": {
+                "name": "job1",
+                "semaphores": [{"name": "semaphore1", "resources-first": True}, "semaphore2"],
+                "pre-run": [{"name": "playbooks/pre.yaml", "semaphores": "semaphore1"}],
+                "post-run": {"name": "playbooks/post.yaml", "semaphores": ["semaphore2"]},
+            },
+        },
+        {
+            "job": {
+                "name": "job2",
+                "semaphores": {"name": "semaphore3"},
+                "cleanup-run": [{"name": "playbooks/cleanup.yaml", "semaphores": "semaphore3"}],
+            },
+        },
+    ]
+    assert zuulcilint_checker.check_duplicate_semaphore(jobs) == {
+        "semaphore1",
+        "semaphore2",
+        "semaphore3",
+    }
