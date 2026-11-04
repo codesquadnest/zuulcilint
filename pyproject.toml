@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 keywords = ["zuul", "ci", "linter"]
 repository = "https://github.com/codesquadnest/zuulcilint"
-include = ["pyproject.toml", "LICENSE", "README.md", "zuulcilint/zuul-schema.yaml"]
+include = ["pyproject.toml", "LICENSE", "README.md"]
 exclude = ["tests/*"]
 packages = [{include = "zuulcilint"}]
 
@@ -55,6 +55,7 @@ extend-ignore = "E203,E501"
 [tool.pytest]
 addopts = ["-ra", "--cov=zuulcilint", "--cov-report=term-missing"]
 testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.coverage.report]
 fail_under = 80
@@ -79,6 +80,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101"] # Use of assert detected.
+"scripts/**/*.py" = ["D104"] # scripts/__init__.py is intentionally empty.
 
 [tool.ruff.lint.mccabe]
 # Implicit 10 is too low for our codebase, even black uses 18 as default.
@@ -106,7 +108,7 @@ legacy_tox_ini = """
     deps =
         ruff
     commands =
-        ruff check zuulcilint tests
+        ruff check zuulcilint tests scripts
 
     [testenv:pre-commit]
     skip_install = true
