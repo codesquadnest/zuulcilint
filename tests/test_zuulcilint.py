@@ -32,6 +32,7 @@ def test_warnings():
         check=False,
     )
 
+    assert result.returncode == 0
     assert "Found 5 inexistent nodesets" in result.stdout.decode("utf-8")
     assert "Found 1 duplicate jobs" in result.stdout.decode("utf-8")
     assert "Found 1 files with 'yml' extension" in result.stdout.decode("utf-8")
