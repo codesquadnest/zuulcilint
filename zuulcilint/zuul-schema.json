@@ -1261,9 +1261,42 @@
                             "title": "secret.data.&lt;value&gt;"
                         }
                     }
+                },
+                "oidc": {
+                    "type": ["object", "null"],
+                    "title": "secret.oidc",
+                    "description": "Mutually exclusive with data, either data or oidc must be supplied. Use of this attribute generates a token secret. If this value is set, then an OIDC ID token in string form will be generated dynamically before running the playbook, and will be added to the Ansible variables available to the job. All attributes are optional, so an empty value may be used to request a token secret without any options.",
+                    "examples": ["https://zuul-ci.org/docs/zuul/latest/config/secret.html#attr-secret.oidc"],
+                    "additionalProperties": false,
+                    "properties": {
+                        "ttl": {
+                            "type": "integer",
+                            "title": "secret.oidc.ttl",
+                            "description": "TTL (Time-To-Live) of the ID token in seconds, it is used to calculate exp claim. It must not be greater than the tenant.max-oidc-ttl and if not specified, the default value is tenant.default-oidc-ttl."
+                        },
+                        "iss": {
+                            "type": "string",
+                            "title": "secret.oidc.iss",
+                            "description": "Custom iss claim, it must be one of the allowed issuers defined in tenant.allowed-oidc-issuers."
+                        },
+                        "algorithm": {
+                            "type": "string",
+                            "title": "secret.oidc.algorithm",
+                            "description": "Specify the signing algorithm of the ID token. It must be one of oidc.supported_signing_algorithms and if not specified, the default value is oidc.default_signing_algorithm."
+                        },
+                        "claims": {
+                            "type": "object",
+                            "title": "secret.oidc.claims",
+                            "description": "A dictionary of custom claims to be added to the ID token. For example, the aud claim can be specified here. The custom claims are not able to overwrite the Zuul default claims."
+                        }
+                    }
                 }
             },
-            "required": ["name", "data"]
+            "required": ["name"],
+            "oneOf": [
+                { "required": ["data"] },
+                { "required": ["oidc"] }
+            ]
         },
         "semaphore": {
             "type": "object",
