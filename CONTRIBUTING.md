@@ -15,6 +15,8 @@ make this project better for everyone.
     - [Commit Messages](#commit-messages)
     - [Python Style Guide](#python-style-guide)
 5. [Testing](#testing)
+6. [Linting](#linting)
+7. [Updating Schema Descriptions](#updating-schema-descriptions)
 
 ## Code of Conduct
 
@@ -115,6 +117,37 @@ To run linting checks with `Ruff`:
     ```sh
     poetry run ruff check .
     ```
+
+## Updating Schema Descriptions
+
+The `description` fields in `zuulcilint/zuul-schema.json` mirror the Zuul documentation. The
+developer script `scripts/update_schema_descriptions.py` (standard library only, not shipped in
+the package) refreshes them from the Zuul RST docs. Each schema node is matched through its
+`title` (for example `job.allowed-projects`) to the corresponding `.. attr::` block; nodes
+without a title or without a match are left untouched, and only the replaced description strings
+are rewritten in the file.
+
+```sh
+# Show what would change, plus schema titles / doc attributes that do not match
+python -m scripts.update_schema_descriptions --dry-run --report
+
+# Fail (exit 1) if descriptions are out of date; writes nothing
+python -m scripts.update_schema_descriptions --check
+
+# Apply the changes (use --only job. to limit to a title prefix)
+python -m scripts.update_schema_descriptions
+
+# Offline, from a local Zuul checkout
+python -m scripts.update_schema_descriptions --docs-dir ~/src/zuul
+```
+
+By default the Zuul tag is taken from the schema title (`Zuul CI X.Y.Z`); the ref should match
+the Zuul version the schema targets, so pass `--zuul-ref` only when you are deliberately updating
+the schema to a different release. The output is plain text; Markdown output is possible future
+work. The network is only used by this script and is never touched by the test suite or CI.
+
+A Claude agent skill could later wrap the script (for example to review the `--report` output),
+but the script itself stays the deterministic core.
 
 ## Using Tox
 

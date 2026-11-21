@@ -2,7 +2,7 @@
     "title": "JSON/YAML schema for Zuul CI 11.2.0 configuration files",
     "description": "Used for quick validation of Zuul CI job configuration files.",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "version": "1.3.1",
+    "version": "1.3.2",
     "type": "array",
     "additionalProperties": false,
     "items": {
@@ -109,18 +109,18 @@
                 "description": {
                     "type": "string",
                     "title": "job.description",
-                    "description": "A textual description of the job. Not currently used directly by Zuul, but it is used by the zuul-sphinx extension to Sphinx to auto-document Zuul jobs (in which case it is interpreted as ReStructuredText)."
+                    "description": "A textual description of the job. Not currently used directly by Zuul, but it is used by the zuul-sphinx extension to Sphinx to auto-document Zuul jobs (in which case it is interpreted as ReStructuredText."
                 },
                 "abstract": {
                     "type": "boolean",
                     "default": false,
                     "title": "job.abstract",
-                    "description": "To indicate a job is not intended to be run directly, but instead must be inherited from, set this attribute to true.\n\nOnce this is set to true in a job it cannot be reset to false within the same job by other variants; however jobs which inherit from it can (and by default do) reset it to false."
+                    "description": "To indicate a job is not intended to be run directly, but instead must be inherited from, set this attribute to true.\n\nOnce this is set to true in a job it cannot be reset to false within the same job by other variants; however jobs which inherit from it can (and by default do) reset it to false.\n\nWarning: It is possible to circumvent the use of abstract in an untrusted-project by creating a change which Depends-On a change which alters abstract. This limitation does not apply to jobs in a config-project."
                 },
                 "allowed-projects": {
                     "type": ["string", "array"],
                     "title": "job.allowed-projects",
-                    "description": "A list of Zuul projects which may use this job. By default, a job may be used by any other project known to Zuul, however, some jobs use resources or perform actions which are not appropriate for other projects. In these cases, a list of projects which are allowed to use this job may be supplied. If this list is not empty, then it must be an exhaustive list of all projects permitted to use the job.\n\nThe current project (where the job is defined) is not automatically included, so if it should be able to run this job, then it must be explicitly listed. This setting is ignored by config projects - they may add any job to any project's pipelines. By default, all projects may use the job.\n\nThis attribute is not overridden by inheritance; instead it is the intersection of all applicable parents and variants (i.e., jobs can reduce but not expand the set of allowed projects when they inherit).",
+                    "description": "A list of Zuul projects which may use this job. By default, a job may be used by any other project known to Zuul, however, some jobs use resources or perform actions which are not appropriate for other projects. In these cases, a list of projects which are allowed to use this job may be supplied. If this list is not empty, then it must be an exhaustive list of all projects permitted to use the job. The current project (where the job is defined) is not automatically included, so if it should be able to run this job, then it must be explicitly listed. This setting is ignored by config projects -- they may add any job to any project's pipelines. By default, all projects may use the job.\n\nIf a job.secrets is used in a job definition in an untrusted-project, allowed-projects is automatically set to the current project only, and can not be overridden. However, a config-project may still add such a job to any project's pipeline. Apply caution when doing so as other projects may be able to expose the source project's secrets.\n\nThis attribute is not overridden by inheritance; instead it is the intersection of all applicable parents and variants (i.e., jobs can reduce but not expand the set of allowed projects when they inherit).\n\nWarning: It is possible to circumvent the use of allowed-projects in an untrusted-project by creating a change which Depends-On a change which alters allowed-projects. This limitation does not apply to jobs in a config-project, or jobs in an untrusted-project which use a secret.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.allowed-projects"],
                     "items": { "type": "string" }
                 },
@@ -134,7 +134,7 @@
                     "default": "9",
                     "enum": ["9", 9],
                     "title": "job.ansible-version",
-                    "description": "The ansible version to use for all playbooks of the job.",
+                    "description": "The ansible version to use for all playbooks of the job. This can be defined at the following layers of configuration where the first match takes precedence:\n\n- job.ansible-version\n- tenant.default-ansible-version\n- scheduler.default_ansible_version\n- Zuul default version",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.ansible-version"]
                 },
                 "attempts": {
@@ -142,11 +142,11 @@
                     "default": 3,
                     "minimum": 0,
                     "title": "job.attempts",
-                    "description": "When Zuul encounters an error running a job's pre-run playbook, Zuul will stop and restart the job. Errors during the main or post-run playbook phase of a job are not affected by this parameter (they are reported immediately). This parameter controls the number of attempts to make before an error is reported."
+                    "description": "When Zuul encounters an error running a job's pre-run playbook, Zuul will stop and restart the job. Errors during the main or post-run -playbook phase of a job are not affected by this parameter (they are reported immediately). This parameter controls the number of attempts to make before an error is reported."
                 },
                 "branches": {
                     "title": "job.branches",
-                    "description": "A regular expression (or list of regular expressions) which describe on what branches a job should run (or in the case of variants, to alter the behavior of a job for a certain branch).\n\nThis attribute is not inherited in the usual manner. Instead, it is used to determine whether each variant on which it appears will be used when running the job.",
+                    "description": "A regular expression (or list of regular expressions) which describe on what branches a job should run (or in the case of variants, to alter the behavior of a job for a certain branch).\n\nThis attribute is not inherited in the usual manner. Instead, it is used to determine whether each variant on which it appears will be used when running the job.\n\nIf none of the defined job variants contain a branches setting which matches the branch of an item, then that job is not run for the item. Otherwise, all of the job variants which match that branch are used when freezing the job. However, if job.override-checkout or job.required-projects.override-checkout are set for a project, Zuul will attempt to use the job variants which match the values supplied in override-checkout for jobs defined in those projects. This can be used to run a job defined in one project on another project without a matching branch.\n\nIf a tag item is enqueued, we look up the branches which contain the commit referenced by the tag. If any of those branches match a branch matcher, the matcher is considered to have matched.\n\nAdditionally in the case of a tag item, if the expression matches the full name of the ref (eg, refs/tags/foo) then the job is considered to match. The preceding section still applies, so the definition must appear in a branch containing the commit referenced by the tag to be considered, and then the expression must also match the tag.\n\nIn some cases, Zuul uses an implied value for the branch specifier if none is supplied:\n\n- For a job definition in a config-project, no implied branch specifier is used. If no branch specifier appears, the job applies to all branches.\n- In the case of an untrusted-project, if the project has only one branch, no implied branch specifier is applied to Job definitions. If the project has more than one branch, the branch containing the job definition is used as an implied branch specifier.\n\nThis allows for the very simple and expected workflow where if a project defines a job on the master branch with no branch specifier, and then creates a new branch based on master, any changes to that job definition within the new branch only affect that branch, and likewise, changes to the master branch only affect it.\n\nSee pragma.implied-branch-matchers for how to override this behavior on a per-file basis. The behavior may also be configured by a Zuul administrator using tenant.untrusted-projects.<project>.implied-branch-matchers.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.branches"],
                     "anyOf": [
                         {
@@ -163,7 +163,7 @@
                     "allOf": [
                         {
                             "title": "job.cleanup-run",
-                            "description": "The job.cleanup-run attribute is deprecated. Instead, list cleanup playbooks under job.post-run and set the job.post-run.cleanup flag.\n\nThe name of a playbook or list of playbooks to run after job execution. Values are either a string describing the full path to the playbook in the repo where the job is defined, or a dictionary.\n\nThe cleanup phase is performed regardless of the job's result, even when the job is canceled. Cleanup results are not taken into account when reporting the job result.\n\nWhen a job inherits from a parent, the child's cleanup-run playbooks are run before the parent's.",
+                            "description": "Warning: This attribute is deprecated. Use job.post-run.cleanup instead.\n\nThe name of a playbook or list of playbooks to run after job execution. Values are either a string describing the full path to the playbook in the repo where the job is defined, or a dictionary described below.\n\nThe cleanup phase is performed regardless of the job's result, even when the job is canceled. Cleanup results are not taken into account when reporting the job result.\n\nWhen a job inherits from a parent, the child's cleanup-run playbooks are run before the parent's. See Job for more information.\n\nThere is a hard-coded five minute timeout for cleanup playbooks.\n\nIf the value is a dictionary, the following attributes are available:",
                             "deprecated": true
                         },
                         { "$ref": "#/definitions/run-type" }
@@ -173,7 +173,7 @@
                     "type": ["boolean", "string"],
                     "default": "auto",
                     "title": "job.deduplicate",
-                    "description": "In the case of a dependency cycle where multiple changes within the cycle run the same job, this setting indicates whether Zuul should attempt to deduplicate the job. If it is deduplicated, then the job will only run for one queue item within the cycle and other items which run the same job will use the results of that build.\n\nThis setting determines whether Zuul will consider deduplication. If it is set to false, Zuul will never attempt to deduplicate the job. If it is set to auto (the default), then Zuul will compare the job with other jobs of other queue items in the dependency cycle, and if they are equivalent and meet certain project criteria, it will deduplicate them.",
+                    "description": "In the case of a dependency cycle where multiple changes within the cycle run the same job, this setting indicates whether Zuul should attempt to deduplicate the job. If it is deduplicated, then the job will only run for one queue item within the cycle and other items which run the same job will use the results of that build.\n\nThis setting determins whether Zuul will consider deduplication. If it is set to false, Zuul will never attempt to deduplicate the job. If it is set to auto (the default), then Zuul will compare the job with other jobs of other queue items in the dependency cycle, and if they are equivalent and meet certain project criteria, it will deduplicate them.\n\nThe project criteria that Zuul considers under the auto setting are either:\n\n- The job must specify job.required-projects.\n- Or the queue items must be for the same project.\n\nThis is because of the following heuristic: if a job specifies job.required-projects, it is most likely to be one which operates in the same way regardless of which project the change under test belongs to, therefore the result of the same job running on two queue items in the same dependency cycle should be the same. If a job does not specify job.required-projects and runs with two different projects under test, the outcome is likely different for those two items.\n\nIf this is not true for a job (e.g., the job ignores the project under test and interacts only with external resources) job.deduplicate may be set to true to ignore the heuristic and deduplicate anyway.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.deduplicate"]
                 },
                 "dependencies": {
@@ -184,7 +184,7 @@
                         {
                             "type": "array",
                             "title": "job.dependencies",
-                            "description": "A list of other jobs upon which this job depends. Zuul will not start executing this job until all of its dependencies have completed successfully or have been paused, and if one or more of them fail, this job will not be run.\n\nThe dependent job is provided with artifacts returned by preceding jobs, e.g. if jobC depends on jobB, jobB depends on jobA, then jobC is provided with artifacts from both jobA and jobB.\n\nThe format for this attribute is either a list of strings or dictionaries. Strings are interpreted as job names. Supports override control. The default is `!override:` values are overridden.",
+                            "description": "A list of other jobs upon which this job depends. Zuul will not start executing this job until all of its dependencies have completed successfully or have been paused, and if one or more of them fail, this job will not be run.\n\nThe dependent job is provided with artifacts returned by preceding jobs, e.g. if jobC depends on jobB, jobB depends on jobA, then jobC is provided with artifacts from both jobA and jobB.\n\nThe format for this attribute is either a list of strings or dictionaries. Strings are interpreted as job names, dictionaries, if used, may have the following attributes:\n\nSupports override control. The default is !override: values are overridden.",
                             "items": {
                                 "oneOf": [
                                     {
@@ -211,7 +211,7 @@
                     "type": "object",
                     "additionalProperties": true,
                     "title": "job.extra-vars",
-                    "description": "A dictionary of variables to supply to Ansible with higher precedence than job, host, or group vars. Note, that despite the name this is not passed to Ansible using the -extra-vars flag.\n\nSupports override control. The default is `!inherit:` values are deep-merged."
+                    "description": "A dictionary of variables to supply to Ansible with higher precedence than job, host, or group vars. Note, that despite the name this is not passed to Ansible using the --extra-vars flag.\n\nSupports override control. The default is !inherit: values are deep-merged."
                 },
                 "failure-message": {
                     "type": "string",
@@ -230,7 +230,7 @@
                         "format": "regex"
                     },
                     "title": "job.failure-output",
-                    "description": "A regular expression (or list of regular expressions) that should be matched against job output to determine if the job is going to fail. Matches are performed line-by-line (multiline regular expressions will not be effective).\n\nThis option is not required; job failure is determined by the result code from its Ansible playbooks. However, if this option is supplied, and one of the regular expressions matches a line in the streaming output from the job, Zuul will be able to anticipate the failure before the completion of the playbook. In this case, it will be able to restart jobs for changes behind it in a dependent pipeline.\n\nUse caution when specifying this option. If an early failure is triggered, the job result will be recorded as FAILURE even if the job playbooks ultimately succeed.\n\nSupports override control. The default is `!inherit:` values are merged without duplication."
+                    "description": "A regular expression (or list of regular expressions) that should be matched against job output to determine if the job is going to fail. Matches are performed line-by-line (multiline regular expressions will not be effective).\n\nThis option is not required; job failure is determined by the result code from its Ansible playbooks. However, if this option is supplied, and one of the regular expressions matches a line in the streaming output from the job, Zuul will be able to anticipate the failure before the completion of the playbook. In this case, it will be able to restart jobs for changes behind it in a dependent pipeline.\n\nUse caution when specifying this option. If an early failure is triggered, the job result will be recorded as FAILURE even if the job playbooks ultimately succeed.\n\nSupports override control. The default is !inherit: values are merged without duplication."
                 },
                 "failure-url": {
                     "type": "string",
@@ -249,19 +249,19 @@
                         "format": "regex"
                     },
                     "title": "job.files",
-                    "description": "This indicates that the job should only run on changes where the specified files are modified. Unlike branches, this value is subject to inheritance and overriding, so only the final value is used to determine if the job should run. This is a regular expression or list of regular expressions.\n\nSupports override control. The default is `!override:` values are overridden."
+                    "description": "This indicates that the job should only run on changes where the specified files are modified. Unlike branches, this value is subject to inheritance and overriding, so only the final value is used to determine if the job should run. This is a regular expression or list of regular expressions.\n\nSupports override control. The default is !override: values are overridden.\n\nWarning: File filters will be ignored for refs that don't have any files. This will be the case for merge commits (e.g. in a post pipeline) or empty commits created with git commit --allow-empty (which can be used in order to run all jobs)."
                 },
                 "final": {
                     "type": "boolean",
                     "default": false,
                     "title": "job.final",
-                    "description": "To prevent other jobs from inheriting from this job, and also to prevent changing execution-related attributes when this job is specified in a project's pipeline, set this attribute to true."
+                    "description": "To prevent other jobs from inheriting from this job, and also to prevent changing execution-related attributes when this job is specified in a project's pipeline, set this attribute to true.\n\nWarning: It is possible to circumvent the use of final in an untrusted-project by creating a change which Depends-On a change which alters final. This limitation does not apply to jobs in a config-project."
                 },
                 "group-vars": {
                     "type": "object",
                     "additionalProperties": true,
                     "title": "job.group-vars",
-                    "description": "A dictionary of group variables to supply to Ansible. The keys of this dictionary are node groups as defined in a Nodeset, and the values are dictionaries of variables, just as in job.vars.\n\nSupports override control. The default is `!inherit:` values are deep-merged."
+                    "description": "A dictionary of group variables to supply to Ansible. The keys of this dictionary are node groups as defined in a Nodeset, and the values are dictionaries of variables, just as in job.vars.\n\nSupports override control. The default is !inherit: values are deep-merged."
                 },
                 "hold-following-changes": {
                     "type": "boolean",
@@ -273,11 +273,11 @@
                     "type": "object",
                     "additionalProperties": true,
                     "title": "job.host-vars",
-                    "description": "A dictionary of host variables to supply to Ansible. The keys of this dictionary are node names as defined in a Nodeset, and the values are dictionaries of variables, just as in job.vars.\n\nSupports override control. The default is `!inherit:` values are deep-merged."
+                    "description": "A dictionary of host variables to supply to Ansible. The keys of this dictionary are node names as defined in a Nodeset, and the values are dictionaries of variables, just as in job.vars.\n\nSupports override control. The default is !inherit: values are deep-merged."
                 },
                 "include-vars": {
                     "title": "job.include-vars",
-                    "description": "A list of files from which to read variables.\n\nThe value may be supplied as a list or a single item, and each value may be a string or a dictionary described below. If supplied as a string, it is treated as the job.include-vars.name.\n\nFiles are read in order, with later variable values overriding earlier ones. Variables specified by job.vars and related attributes will override variables read from files.\n\nThe file should be in YAML or JSON format.\n\nSupports override control. The default is `!inherit:` values are appended without duplication.",
+                    "description": "A list of files from which to read variables.\n\nThe value may be supplied as a list or a single item, and each value may be a string or a dictionary described below. If supplied as a string, it is treated as the job.include-vars.name.\n\nFiles are read in order, with later variable values overriding earlier ones. Variables specified by job.vars and related attributes will override variables read from files.\n\nThe file should be in YAML or JSON format.\n\nSupports override control. The default is !inherit: values are appended without duplication.",
                     "oneOf": [
                         {
                             "type": "object",
@@ -296,7 +296,7 @@
                                     "type": "boolean",
                                     "default": false,
                                     "title": "job.include-vars.required",
-                                    "description": "A boolean indicating whether this file is required to be present. If this is set to `true` and the file is not present, it is considered an error and the job result will reflect this."
+                                    "description": "A boolean indicating whether this file is required to be present. If this is set to true and the file is not present, it is considered an error and the job result will reflect this."
                                 },
                                 "zuul-project": {
                                     "type": "boolean",
@@ -308,7 +308,7 @@
                                     "type": "boolean",
                                     "default": true,
                                     "title": "job.include-vars.use-ref",
-                                    "description": "When this is `true` (the default) if the job is triggered by a ref, and that ref is for the include-vars project, then Zuul will checkout the ref and use the file from that ref checkout. If the include-vars is for a different project than the triggering ref, or the job is not triggered by a ref, or this is set to `false`, then Zuul will follow the normal fallback procedure for branches to determine from which branch to load the file."
+                                    "description": "When this is true (the default) if the job is triggered by a ref, and that ref is for the include-vars project, then Zuul will checkout the ref and use the file from that ref checkout. If the include-vars is for a different project than the triggering ref, or the job is not triggered by a ref, or this is set to false, then Zuul will follow the normal fallback procedure for branches to determine from which branch to load the file."
                                 }
                             },
                             "required": [
@@ -367,7 +367,7 @@
                         "format": "regex"
                     },
                     "title": "job.irrelevant-files",
-                    "description": "This is a negative complement of files. It indicates that the job should run unless all of the files changed match this list. In other words, if the regular expression `docs/.*` is supplied, then this job will not run if the only files changed are in the docs directory. A regular expression or list of regular expressions.\n\nSupports override control. The default is `!override:` values are overridden."
+                    "description": "This is a negative complement of files. It indicates that the job should run unless all of the files changed match this list. In other words, if the regular expression docs/.* is supplied, then this job will not run if the only files changed are in the docs directory. A regular expression or list of regular expressions.\n\nSupports override control. The default is !override: values are overridden.\n\nWarning: File filters will be ignored for refs that don't have any files. This will be the case for merge commits (e.g. in a post pipeline) or empty commits created with git commit --allow-empty (which can be used in order to run all jobs)."
                 },
                 "match-on-config-updates": {
                     "type": "boolean",
@@ -377,7 +377,7 @@
                 },
                 "nodeset": {
                     "title": "job.nodeset",
-                    "description": "The nodes which should be supplied to the job. This parameter may be supplied either as a string, in which case it references a Nodeset definition which appears elsewhere in the configuration, or a dictionary, in which case it is interpreted in the same way as a Nodeset definition, though the top-level nodeset name attribute should be omitted (in essence, it is an anonymous Nodeset definition unique to this job; the nodes themselves still require names).",
+                    "description": "The nodes which should be supplied to the job. This parameter may be supplied either as a string, in which case it references a Nodeset definition which appears elsewhere in the configuration, or a dictionary, in which case it is interpreted in the same way as a Nodeset definition, though the top-level nodeset name attribute should be omitted (in essence, it is an anonymous Nodeset definition unique to this job; the nodes themselves still require names). See the Nodeset reference for the syntax to use in that case.\n\nIf a job has an empty (or no) Nodeset definition, it will still run and is able to perform limited actions within the Zuul executor sandbox. Note so-called \"executor-only\" jobs run with an empty inventory, and hence Ansible's implicit localhost. This means an executor-only playbook must be written to match localhost directly; i.e.\n\nnot with hosts: all (as this does not match the implicit localhost and the playbook will not run). There are also caveats around things like enumerating the magic variable hostvars in this situation. For more information see the Ansible implicit localhost documentation (https://docs.ansible.com/ansible/latest/inventory/implicit_localhost.html).\n\nA useful example of executor-only jobs is saving resources by directly utilising the prior results from testing a committed change. For example, a review which updates documentation source files would generally test validity by building a documentation tree. When this change is committed, the pre-built output can be copied in an executor-only job directly to the publishing location in a post-commit promote pipeline; avoiding having to use a node to rebuild the documentation for final publishing.",
                     "oneOf": [
                         { "type": "string" },
                         {
@@ -392,7 +392,7 @@
                         "number"
                     ],
                     "title": "job.override-checkout",
-                    "description": "When Zuul runs jobs for a proposed change, it normally checks out the branch associated with that change on every project present in the job. If jobs are running on a ref (such as a branch tip or tag), then that ref is normally checked out. This attribute is used to override that behavior and indicate that this job should, regardless of the branch for the queue item, use the indicated ref (i.e., branch or tag) instead. This can be used, for example, to run a previous version of the software (from a stable maintenance branch) under test even if the change being tested applies to a different branch (this is only likely to be useful if there is some cross-branch interaction with some component of the system being tested).\n\nThis value is also used to help select which variants of a job to run. If override-checkout is set, then Zuul will use this value instead of the branch of the item being tested when collecting jobs to run."
+                    "description": "When Zuul runs jobs for a proposed change, it normally checks out the branch associated with that change on every project present in the job. If jobs are running on a ref (such as a branch tip or tag), then that ref is normally checked out. This attribute is used to override that behavior and indicate that this job should, regardless of the branch for the queue item, use the indicated ref (i.e., branch or tag) instead. This can be used, for example, to run a previous version of the software (from a stable maintenance branch) under test even if the change being tested applies to a different branch (this is only likely to be useful if there is some cross-branch interaction with some component of the system being tested). See also the project-specific job.required-projects.override-checkout attribute to apply this behavior to a subset of a job's projects.\n\nThis value is also used to help select which variants of a job to run. If override-checkout is set, then Zuul will use this value instead of the branch of the item being tested when collecting jobs to run."
                 },
                 "parent": {
                     "type": [
@@ -406,13 +406,13 @@
                     "type": "boolean",
                     "default": false,
                     "title": "job.post-review",
-                    "description": "A boolean value which indicates whether this job may only be used in pipelines where pipeline.post-review is true. This is automatically set to true if this job uses a Secret and is defined in a untrusted-project. It may be explicitly set to obtain the same behavior for jobs defined in config projects. Once this is set to true anywhere in the inheritance hierarchy for a job, it will remain set for all child jobs and variants (it can not be set to false)."
+                    "description": "A boolean value which indicates whether this job may only be used in pipelines where pipeline.post-review is true. This is automatically set to true if this job uses a Secret and is defined in a untrusted-project. It may be explicitly set to obtain the same behavior for jobs defined in config projects. Once this is set to true anywhere in the inheritance hierarchy for a job, it will remain set for all child jobs and variants (it can not be set to false).\n\nWarning: It is possible to circumvent the use of post-review in an untrusted-project by creating a change which Depends-On a change which alters post-review. This limitation does not apply to jobs in a config-project, or jobs in an untrusted-project which use a secret."
                 },
                 "post-run": {
                     "allOf": [
                       {
                         "title": "job.post-run",
-                        "description": "The name of a playbook or list of playbooks to run after the main body of a job."
+                        "description": "The name of a playbook or list of playbooks to run after the main body of a job. Values are either a string describing the full path to the playbook in the repo where the job is defined, or a dictionary described below.\n\nWhen a job inherits from a parent, the child's post-run playbooks are run before the parent's. See Job for more information.\n\nIf the value is a dictionary, the following attributes are available:"
                       },
                       { "$ref": "#/definitions/post-run-type" }
                     ]
@@ -427,7 +427,7 @@
                     "allOf": [
                         {
                             "title": "job.pre-run",
-                            "description": "The name of a playbook or list of playbooks to run before the main body of a job. Values are either a string describing the full path to the playbook in the repo where the job is defined, or a dictionary.\n\nWhen a job inherits from a parent, the child's pre-run playbooks are run after the parent's."
+                            "description": "The name of a playbook or list of playbooks to run before the main body of a job. Values are either a string describing the full path to the playbook in the repo where the job is defined, or a dictionary described below.\n\nWhen a job inherits from a parent, the child's pre-run playbooks are run after the parent's. See Job for more information.\n\nIf the value is a dictionary, the following attributes are available:"
                         },
                         { "$ref": "#/definitions/run-type" }
                     ]
@@ -436,11 +436,11 @@
                     "type": "boolean",
                     "default": false,
                     "title": "job.protected",
-                    "description": "When set to true only jobs defined in the same project may inherit from this job. This includes changing execution-related attributes when this job is specified in a project's pipeline. Once this is set to true it cannot be reset to false."
+                    "description": "When set to true only jobs defined in the same project may inherit from this job. This includes changing execution-related attributes when this job is specified in a project's pipeline. Once this is set to true it cannot be reset to false.\n\nWarning: It is possible to circumvent the use of protected in an untrusted-project by creating a change which Depends-On a change which alters protected. This limitation does not apply to jobs in a config-project."
                 },
                 "provides": {
                     "title": "job.provides",
-                    "description": "A list of free-form strings which identifies resources provided by this job which may be used by other jobs for other changes using the job.requires attribute.\n\nSupports override control. The default is `!inherit:` values are merged without duplication.",
+                    "description": "A list of free-form strings which identifies resources provided by this job which may be used by other jobs for other changes using the job.requires attribute.\n\nSupports override control. The default is !inherit: values are merged without duplication.",
                     "oneOf": [
                         {
                             "type": "array",
@@ -456,7 +456,7 @@
                         "array"
                     ],
                     "title": "job.required-projects",
-                    "description": "A list of other projects which are used by this job. Any Zuul projects specified here will also be checked out by Zuul into the working directory for the job. Speculative merging and cross-repo dependencies will be honored. If there is not a change for the project ahead in the pipeline, its repo state as of the time the item was enqueued will be frozen and used for all jobs for a given change (see Global Repo State).\n\nThe format for this attribute is either a list of strings or dictionaries. Strings are interpreted as project names, dictionaries, if used, may have the following attributes:\n\nSupports override control. The default is `!inherit:` values are merged without duplication.",
+                    "description": "A list of other projects which are used by this job. Any Zuul projects specified here will also be checked out by Zuul into the working directory for the job. Speculative merging and cross-repo dependencies will be honored. If there is not a change for the project ahead in the pipeline, its repo state as of the time the item was enqueued will be frozen and used for all jobs for a given change (see global_repo_state).\n\nThe format for this attribute is either a list of strings or dictionaries. Strings are interpreted as project names, dictionaries, if used, may have the following attributes:\n\nSupports override control. The default is !inherit: values are merged without duplication.",
                     "items": {
                         "type": ["string", "object"],
                         "properties": {
@@ -471,7 +471,7 @@
                 },
                 "requires": {
                     "title": "job.requires",
-                    "description": "A list of free-form strings which identify resources which may be provided by other jobs for other changes (via the job.provides attribute) that are used by this job.\n\nWhen Zuul encounters a job with a requires attribute, it searches for those values in the provides attributes of any jobs associated with any queue items ahead of the current change. In this way, if a change uses either git dependencies or a Depends-On header to indicate a dependency on another change, Zuul will be able to determine that the parent change affects the run-time environment of the child change. If such a relationship is found, the job with requires will not start until all of the jobs with matching provides have completed or paused. Additionally, the artifacts returned by the provides jobs will be made available to the requires job.\n\nIf the child change is enqueued after the moment the provides job has finished artifacts are still made available to the requires job.\n\nIf provides job has failed, then requires job is marked as failed and is not run.\n\nprovides/requires artifact resolution is ignored for non-change items, e.g. for branch items in supercedent pipeline, branch items in periodic independent pipeline, tag items in independent pipeline.Supports override control. The default is `!inherit:` values are merged without duplication.",
+                    "description": "A list of free-form strings which identify resources which may be provided by other jobs for other changes (via the job.provides attribute) that are used by this job.\n\nWhen Zuul encounters a job with a requires attribute, it searches for those values in the provides attributes of any jobs associated with any queue items ahead of the current change. In this way, if a change uses either git dependencies or a Depends-On header to indicate a dependency on another change, Zuul will be able to determine that the parent change affects the run-time environment of the child change. If such a relationship is found, the job with requires will not start until all of the jobs with matching provides have completed or paused. Additionally, the artifacts returned by the provides jobs will be made available to the requires job.\n\nIf the child change is enqueued after the moment the provides job has finished artifacts are still made available to the requires job.\n\nIf provides job has failed, then requires job is marked as failed and is not run.\n\nprovides/requires artifact resolution is ignored for non-change items, e.g. for branch items in supercedent pipeline, branch items in periodic independent pipeline, tag items in independent pipeline.\n\nSupports override control. The default is !inherit: values are merged without duplication.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.requires"],
                     "oneOf": [
                         {
@@ -486,7 +486,7 @@
                 "roles": {
                     "type": "array",
                     "title": "job.roles",
-                    "description": "A list of Ansible roles to prepare for the job. Because a job runs an Ansible playbook, any roles which are used by the job must be prepared and installed by Zuul before the job begins. This value is a list of dictionaries, each of which indicates one of two types of roles: a Galaxy role, which is simply a role that is installed from Ansible Galaxy, or a Zuul role, which is a role provided by a project managed by Zuul. Zuul roles are able to benefit from speculative merging and cross-project dependencies when used by playbooks in untrusted projects. Roles are added to the Ansible role path in the order they appear on the job - roles earlier in the list will take precedence over those which follow.\n\nThis attribute is not overridden on inheritance or variance; instead roles are added with each new job or variant.",
+                    "description": "A list of Ansible roles to prepare for the job. Because a job runs an Ansible playbook, any roles which are used by the job must be prepared and installed by Zuul before the job begins. This value is a list of dictionaries, each of which indicates one of two types of roles: a Galaxy role, which is simply a role that is installed from Ansible Galaxy, or a Zuul role, which is a role provided by a project managed by Zuul. Zuul roles are able to benefit from speculative merging and cross-project dependencies when used by playbooks in untrusted projects. Roles are added to the Ansible role path in the order they appear on the job -- roles earlier in the list will take precedence over those which follow.\n\nThis attribute is not overridden on inheritance or variance; instead roles are added with each new job or variant. In the case of job inheritance or variance, the roles used for each of the playbooks run by the job will be only those which were cumulatively defined up to that point in the inheritance hierarchy where that playbook was added. If a child job inherits from a parent which defines a pre and post playbook, then the pre and post playbooks it inherits from the parent job will run only with the roles that were defined on the parent. If the child adds its own pre and post playbooks, then any roles added by the child will be available to the child's playbooks. This is so that a job which inherits from a parent does not inadvertently alter the behavior of the parent's playbooks by the addition of conflicting roles. Roles added by a child will appear before those it inherits from its parent.\n\nIf a project used for a Zuul role has branches, the usual process of selecting which branch should be checked out applies. See job.override-checkout for a description of that process and how to override it. As a special case, if the role project is the project in which this job definition appears, then the branch in which this definition appears will be used. In other words, a playbook may not use a role from a different branch of the same project.\n\nIf the job is run on a ref (for example, a branch tip or a tag) then a different form of the branch selection process is used. There is no single branch context available for selecting an appropriate branch of the role's repo to check out, so only the following are considered: First the ref specified by job.required-projects.override-checkout, or job.override-checkout. Then if the role repo is the playbook repo, that branch is used; otherwise the project's default branch is selected.\n\nWarning: Keep this behavior difference in mind when designing jobs that run on both branches and tags. If the same job must be used in both circumstances, ensure that any roles from other repos used by playbooks in the job originate only in un-branched repositories. Otherwise different branches of the role repo may be checked out.\n\nA project which supplies a role may be structured in one of two configurations: a bare role (in which the role exists at the root of the project), or a contained role (in which the role exists within the roles/ directory of the project, perhaps along with other roles). In the case of a contained role, the roles/ directory of the project is added to the role search path. In the case of a bare role, the project itself is added to the role search path. In case the name of the project is not the name under which the role should be installed (and therefore referenced from Ansible), the name attribute may be used to specify an alternate.\n\nA job automatically has the project in which it is defined added to the roles path if that project appears to contain a role or roles/ directory. By default, the project is added to the path under its own name, however, that may be changed by explicitly listing the project in the roles list in the usual way.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.roles"],
                     "items": {
                         "type": "object",
@@ -522,14 +522,14 @@
                     "allOf": [
                         {
                             "title": "job.run",
-                            "description": "The name of a playbook or list of playbooks for this job. If it is not supplied, the parent's playbook will be used (and likewise up the inheritance chain). Values are either a string describing the full path to the playbook in the repo where the job is defined, or a dictionary."
+                            "description": "The name of a playbook or list of playbooks for this job. If it is not supplied, the parent's playbook will be used (and likewise up the inheritance chain). Values are either a string describing the full path to the playbook in the repo where the job is defined, or a dictionary described below.\n\nIf the value is a dictionary, the following attributes are available:"
                         },
                         { "$ref": "#/definitions/run-type" }
                     ]
                 },
                 "secrets": {
                     "title": "job.secrets",
-                    "description": "A list of secrets which may be used by the job. A Secret is a named collection of private information defined separately in the configuration. The secrets that appear here must be defined in the same project as this job definition.\n\nEach item in the list may may be supplied either as a string, in which case it references the name of a Secret definition, or as a dict.",
+                    "description": "A list of secrets which may be used by the job. A Secret is a named collection of private information defined separately in the configuration. The secrets that appear here must be defined in the same project as this job definition.\n\nEach item in the list may may be supplied either as a string, in which case it references the name of a Secret definition, or as a dict. If an element in this list is given as a dict, it may have the following fields:",
                     "oneOf": [
                         { "type": "string" },
                         {
@@ -550,7 +550,7 @@
                                     "type": "boolean",
                                     "default": false,
                                     "title": "job.secrets.pass-to-parent",
-                                    "description": "A boolean indicating that this secret should be made available to playbooks in parent jobs. Use caution when setting this value - parent jobs may be in different projects with different security standards. Setting this to true makes the secret available to those playbooks and therefore subject to intentional or accidental exposure.",
+                                    "description": "A boolean indicating that this secret should be made available to playbooks in parent jobs. Use caution when setting this value -- parent jobs may be in different projects with different security standards. Setting this to true makes the secret available to those playbooks and therefore subject to intentional or accidental exposure.",
                                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.secrets.pass-to-parent"]
                                 }
                             },
@@ -578,7 +578,7 @@
                 },
                 "semaphores": {
                     "title": "job.semaphores",
-                    "description": "The name of a Semaphore (or list of them) or Global Semaphore which should be acquired and released when the job begins and ends. If the semaphore is at maximum capacity, then Zuul will wait until it can be acquired before starting the job. The format is either a string, a dictionary, or a list of either of those in the case of multiple semaphores. If it's a string it references a semaphore using the default value for job.semaphores.resources-first.\n\nAlso the name of a semaphore can be any string (without being previously defined via semaphore directive). In this case an implicit semaphore is created with capacity max=1.\n\nIf multiple semaphores are requested, the job will not start until all have been acquired, and Zuul will wait until all are available before acquiring any.\n\nWhen inheriting jobs or applying variants, the list of semaphores is extended (semaphores specified in a job definition are added to any supplied by their parents).",
+                    "description": "The name of a Semaphore (or list of them) or global_semaphore which should be acquired and released when the job begins and ends. If the semaphore is at maximum capacity, then Zuul will wait until it can be acquired before starting the job. The format is either a string, a dictionary, or a list of either of those in the case of multiple semaphores. If it's a string it references a semaphore using the default value for job.semaphores.resources-first.\n\nAlso the name of a semaphore can be any string (without being previosly defined via semaphore directive). In this case an implicit semaphore is created with capacity max=1.\n\nIf multiple semaphores are requested, the job will not start until all have been acquired, and Zuul will wait until all are available before acquiring any.\n\nWhen inheriting jobs or applying variants, the list of semaphores is extended (semaphores specified in a job definition are added to any supplied by their parents). This can not be changed via override control.",
                     "oneOf": [
                         {
                             "type": "string"
@@ -629,18 +629,18 @@
                     "type": "array",
                     "items": { "type": "string" },
                     "title": "job.tags",
-                    "description": "Metadata about this job. Tags are units of information attached to the job; they do not affect Zuul's behavior, but they can be used within the job to characterize the job. For example, a job which tests a certain subsystem could be tagged with the name of that subsystem, and if the job's results are reported into a database, then the results of all jobs affecting that subsystem could be queried. This attribute is specified as a list of strings.\n\nSupports override control. The default is `!inherit:` values are merged without duplication."
+                    "description": "Metadata about this job. Tags are units of information attached to the job; they do not affect Zuul's behavior, but they can be used within the job to characterize the job. For example, a job which tests a certain subsystem could be tagged with the name of that subsystem, and if the job's results are reported into a database, then the results of all jobs affecting that subsystem could be queried. This attribute is specified as a list of strings.\n\nSupports override control. The default is !inherit: values are merged without duplication."
                 },
                 "timeout": {
                     "type": "integer",
                     "minimum": 0,
                     "title": "job.timeout",
-                    "description": "The time in seconds that the job should be allowed to run before it is automatically aborted and failure is reported.\n\nThis timeout only applies to the pre-run and run playbooks in a job."
+                    "description": "The time in seconds that the job should be allowed to run before it is automatically aborted and failure is reported. If no timeout is supplied, the job may run indefinitely. Supplying a timeout is highly recommended.\n\nThis timeout only applies to the pre-run and run playbooks in a job."
                 },
                 "vars": {
                     "type": "object",
                     "title": "job.vars",
-                    "description": "A dictionary of variables to supply to Ansible.\n\nWhen running a trusted playbook, the value of variables will be frozen at the start of the job. Therefore if the value of the variable is an Ansible Jinja template, it may only reference values which are known at the start of the job, and its value will not change. Untrusted playbooks dynamically evaluate variables and are not limited by this restriction.\n\nUn-frozen versions of all the original job variables are available tagged with the !unsafe YAML tag under the unsafe_vars variable hierarchy. This tag prevents Ansible from evaluating them as Jinja templates. For example, the job variable myvar would be available under unsafe_vars.myvar. Advanced users may force Ansible to evaluate these values, but it is not recommended to do so except in the most controlled of circumstances. They are almost impossible to render safely.\n\nSupports override control. The default is `!inherit:` values are deep-merged.",
+                    "description": "A dictionary of variables to supply to Ansible.\n\nWhen running a trusted playbook, the value of variables will be frozen at the start of the job. Therefore if the value of the variable is an Ansible Jinja template, it may only reference values which are known at the start of the job, and its value will not change. Untrusted playbooks dynamically evaluate variables and are not limited by this restriction.\n\nUn-frozen versions of all the original job variables are available tagged with the !unsafe YAML tag under the unsafe_vars variable hierarchy. This tag prevents Ansible from evaluating them as Jinja templates. For example, the job variable myvar would be available under unsafe_vars.myvar. Advanced users may force Ansible to evaluate these values, but it is not recommended to do so except in the most controlled of circumstances. They are almost impossible to render safely.\n\nSupports override control. The default is !inherit: values are deep-merged.",
                     "additionalProperties": true
                 },
                 "voting": {
@@ -654,7 +654,7 @@
                     "default": "golang",
                     "enum": ["golang", "flat", "unique"],
                     "title": "job.workspace-scheme",
-                    "description": "The scheme to use when placing git repositories in the workspace.",
+                    "description": "The scheme to use when placing git repositories in the workspace.\n\ngolang: This is the default and, despite the name, is suitable and recommended for any language.\n\nflat: In some cases the golang scheme can produce collisions (consider the projects component and component/subcomponent). In this case it may be preferable to use the flat scheme (which would produce repositories at component and subcomponent).\n\nNote, however, that this scheme may produce collisions with component and component/component.\n\nunique: This scheme will produce unique workspace paths for every repository and won't cause collisions.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/job.html#attr-job.workspace-scheme"]
                 }
             },
@@ -716,7 +716,7 @@
                     "allOf": [
                         {
                             "title": "nodeset.nodes",
-                            "description": "A list of node definitions.\r\n\n\r\n\nThis attribute is required unless alternatives is supplied."
+                            "description": "This attribute is required unless alteranatives is supplied.\n\nA list of node definitions, each of which has the following format:"
                         },
                         {
                             "oneOf": [
@@ -758,7 +758,7 @@
                 "alternatives": {
                     "type": "array",
                     "title": "nodeset.alternatives",
-                    "description": "A list of alternative nodesets for which requests should be attempted in series. The first request which succeeds will be used for the job.\n\nThe items in the list may be either strings, in which case they refer to other Nodesets within the layout, or they may be a dictionary which is a nested anonymous Nodeset definition. The two types (strings or nested definitions) may be mixed.\n\nAn alternative Nodeset definition may in turn refer to other alternative nodeset definitions. In this case, the tree of definitions will be flattened in a breadth-first manner to create the ordered list of alternatives.\n\nA Nodeset which specifies alternatives may not also specify nodes or groups (this attribute is exclusive with nodeset.nodes and nodeset.groups).",
+                    "description": "A list of alternative nodesets for which requests should be attempted in series. The first request which succeeds will be used for the job.\n\nThe items in the list may be either strings, in which case they refer to other Nodesets within the layout, or they may be a dictionary which is a nested anonymous Nodeset definition. The two types (strings or nested definitions) may be mixed.\n\nAn alternative Nodeset definition may in turn refer to other alternative nodeset definitions. In this case, the tree of definitions will be flattened in a breadth-first manner to create the ordered list of alternatives.\n\nA Nodeset which specifies alternatives may not also specify nodes or groups (this attribute is exclusive with nodeset.nodes and nodeset.groups.",
                     "items": {
                         "oneOf": [
                             { "type": "string" },
@@ -775,7 +775,7 @@
                         "name": {
                             "type": "string",
                             "title": "nodeset.name",
-                            "description": "The name of the Nodeset, to be referenced by a Job.\r\n\n\r\n\nThis is required when defining a standalone Nodeset in Zuul. When defining an in-line anonymous nodeset within a job definition, this attribute should be omitted."
+                            "description": "The name of the Nodeset, to be referenced by a Job.\n\nThis is required when defining a standalone Nodeset in Zuul. When defining an in-line anonymous nodeset within a job definition, this attribute should be omitted."
                         }
                     }
                 },
@@ -801,14 +801,14 @@
                     "type": "string",
                     "enum": ["independent", "dependent", "serial", "supercedent"],
                     "title": "pipeline.manager",
-                    "description": "There are several schemes for managing pipelines.",
+                    "description": "There are several schemes for managing pipelines. The following table summarizes their features; each is described in detail below.\n\n=========== ============================= ============ ===== ============= ========= Manager Use Case Dependencies Merge Shared Queues Window =========== ============================= ============ ===== ============= ========= Independent check, post No No No Unlimited Dependent gate Yes Yes Yes Variable Serial deploy No No Yes 1 Supercedent post, promote No No Project-ref 1 =========== ============================= ============ ===== ============= =========\n\nindependent: Every event in this pipeline should be treated as independent of other events in the pipeline. This is appropriate when the order of events in the pipeline doesn't matter because the results of the actions this pipeline performs can not affect other events in the pipeline. For example, when a change is first uploaded for review, you may want to run tests on that change to provide early feedback to reviewers. At the end of the tests, the change is not going to be merged, so it is safe to run these tests in parallel without regard to any other changes in the pipeline. They are independent.\n\nAnother type of pipeline that is independent is a post-merge pipeline. In that case, the changes have already merged, so the results can not affect any other events in the pipeline.\n\ndependent: The dependent pipeline manager is designed for gating. It ensures that every change is tested exactly as it is going to be merged into the repository. An ideal gating system would test one change at a time, applied to the tip of the repository, and only if that change passed tests would it be merged. Then the next change in line would be tested the same way. In order to achieve parallel testing of changes, the dependent pipeline manager performs speculative execution on changes. It orders changes based on their entry into the pipeline. It begins testing all changes in parallel, assuming that each change ahead in the pipeline will pass its tests. If they all succeed, all the changes can be tested and merged in parallel. If a change near the front of the pipeline fails its tests, each change behind it ignores whatever tests have been completed and are tested again without the change in front. This way gate tests may run in parallel but still be tested correctly, exactly as they will appear in the repository when merged.\n\nFor more detail on the theory and operation of Zuul's dependent pipeline manager, see: /gating.\n\nserial: This pipeline manager supports shared queues (like depedent pipelines) but only one item in each shared queue is processed at a time.\n\nThis may be useful for post-merge pipelines which perform partial production deployments (i.e., there are jobs with file matchers which only deploy to affected parts of the system). In such a case it is important for every change to be processed, but they must still be processed one at a time in order to ensure that the production system is not inadvertently regressed. Support for shared queues ensures that if multiple projects are involved deployment runs still execute sequentially.\n\nsupercedent: This is like an independent pipeline, in that every item is distinct, except that items are grouped by project and ref, and only one item for each project-ref is processed at a time. If more than one additional item is enqueued for the project-ref, previously enqueued items which have not started processing are removed.\n\nIn other words, this pipeline manager will only run jobs for the most recent item enqueued for a given project-ref.\n\nThis may be useful for post-merge pipelines which perform artifact builds where only the latest version is of use. In these cases, build resources can be conserved by avoiding building intermediate versions.\n\nNote: Since this pipeline manager filters intermediate buildsets using it in combination with file filters on jobs is dangerous. In this case jobs of in between buildsets can be unexpectedly skipped entirely. If file filters are needed the independent or serial pipeline managers should be used.\n\nNote: Since this pipeline manager creates a virtual queue for each project-ref, it ignores manually configured shared queues as well as circular dependencies.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/pipeline.html#attr-pipeline.manager"]
                 },
                 "post-review": {
                     "type": "boolean",
                     "default": false,
                     "title": "pipeline.post-review",
-                    "description": "This is a boolean which indicates that this pipeline executes code that has been reviewed. Some jobs perform actions which should not be permitted with unreviewed code. When this value is false those jobs will not be permitted to run in the pipeline. If a pipeline is designed only to be used after changes are reviewed or merged, set this value to true to permit such jobs."
+                    "description": "This is a boolean which indicates that this pipeline executes code that has been reviewed. Some jobs perform actions which should not be permitted with unreviewed code. When this value is false those jobs will not be permitted to run in the pipeline. If a pipeline is designed only to be used after changes are reviewed or merged, set this value to true to permit such jobs.\n\nFor more information, see Secret and job.post-review."
                 },
                 "description": {
                     "type": "string",
@@ -837,25 +837,25 @@
                     "type": "string",
                     "default": "Starting {pipeline.name} jobs.",
                     "title": "pipeline.start-message",
-                    "description": "The introductory text in reports when jobs are started. Two replacement fields are available: pipeline and item_url."
+                    "description": "The introductory text in reports when jobs are started. The following replacement fields are available:\n\npipeline The name of the pipeline item_url The full URL to information about the item in the web UI change Deprecated: information about the change changes Deprecated: information about the change status_url Deprecated: the configured web ui status page root\n\nWarning: The replacement fields change, changes, and status_url are deprecated. Use item_url, which is automatically the best URL for information about the item instead."
                 },
                 "enqueue-message": {
                     "type": "string",
                     "default": "",
                     "title": "pipeline.enqueue-message",
-                    "description": "The introductory text in reports when an item is enqueued. Empty by default. Two replacement fields are available: pipeline and item_url."
+                    "description": "The introductory text in reports when an item is enqueued. Empty by default. The following replacement fields are available:\n\npipeline The name of the pipeline item_url The full URL to information about the item in the web UI change Deprecated: information about the change changes Deprecated: information about the change status_url Deprecated: the configured web ui status page root\n\nWarning: The replacement fields change, changes, and status_url are deprecated. Use item_url, which is automatically the best URL for information about the item instead."
                 },
                 "merge-conflict-message": {
                     "type": "string",
                     "default": "Merge failed.",
                     "title": "pipeline.merge-conflict-message",
-                    "description": "The introductory text in the message reported when a change fails to merge with the current state of the repository. Defaults to “Merge failed.”"
+                    "description": "The introductory text in the message reported when a change fails to merge with the current state of the repository. Defaults to \"Merge failed.\""
                 },
                 "no-jobs-message": {
                     "type": "string",
                     "default": "",
                     "title": "pipeline.no-jobs-message",
-                    "description": "The introductory text in reports when an item is dequeued without running any jobs. Empty by default. Two replacement fields are available: pipeline and item_url."
+                    "description": "The introductory text in reports when an item is dequeued without running any jobs. Empty by default. The following replacement fields are available:\n\npipeline The name of the pipeline item_url The full URL to information about the item in the web UI change Deprecated: information about the change changes Deprecated: information about the change status_url Deprecated: the configured web ui status page root\n\nWarning: The replacement fields change, changes, and status_url are deprecated. Use item_url, which is automatically the best URL for information about the item instead."
                 },
                 "dequeue-message": {
                     "type": "string",
@@ -871,7 +871,7 @@
                 "trigger": {
                     "type": "object",
                     "title": "pipeline.trigger",
-                    "description": "At least one trigger source must be supplied for each pipeline. Triggers are not exclusive - matching events may be placed in multiple pipelines, and they will behave independently in each of the pipelines they match.\n\nTriggers are loaded from their connection name. The driver type of the connection will dictate which options are available.",
+                    "description": "At least one trigger source must be supplied for each pipeline. Triggers are not exclusive -- matching events may be placed in multiple pipelines, and they will behave independently in each of the pipelines they match.\n\nTriggers are loaded from their connection name. The driver type of the connection will dictate which options are available. See drivers.",
                     "patternProperties": {
                         "^(?!(name$|manager$|post-review$|description$|variant-description$|success-message$|failure-message$|start-message$|enqueue-message$|merge-conflict-message$|no-jobs-message$|dequeue-message$|footer-message$|trigger$).*)": {
                             "type": "array",
@@ -889,7 +889,7 @@
                         {
                             "type": "object",
                             "title": "pipeline.require",
-                            "description": "If this section is present, it establishes prerequisites for any kind of item entering the Pipeline. Regardless of how the item is to be enqueued (via any trigger or automatic dependency resolution), the conditions specified here must be met or the item will not be enqueued. These requirements may vary depending on the source of the item being enqueued.\n\nRequirements are loaded from their connection name. The driver type of the connection will dictate which options are available."
+                            "description": "If this section is present, it establishes prerequisites for any kind of item entering the Pipeline. Regardless of how the item is to be enqueued (via any trigger or automatic dependency resolution), the conditions specified here must be met or the item will not be enqueued. These requirements may vary depending on the source of the item being enqueued.\n\nRequirements are loaded from their connection name. The driver type of the connection will dictate which options are available. See drivers."
                         },
                         {
                             "$ref": "#/definitions/any-driver-require"
@@ -901,7 +901,7 @@
                         {
                             "type": "object",
                             "title": "pipeline.reject",
-                            "description": "If this section is present, it establishes prerequisites that can block an item from being enqueued. It can be considered a negative version of pipeline.require.\n\nRequirements are loaded from their connection name. The driver type of the connection will dictate which options are available."
+                            "description": "If this section is present, it establishes prerequisites that can block an item from being enqueued. It can be considered a negative version of pipeline.require.\n\nRequirements are loaded from their connection name. The driver type of the connection will dictate which options are available. See drivers."
                         },
                         {
                             "$ref": "#/definitions/any-driver-reject"
@@ -912,7 +912,7 @@
                     "type": "boolean",
                     "default": true,
                     "title": "pipeline.allow-other-connections",
-                    "description": "If this is set to false then any change enqueued into the pipeline (whether it is enqueued to run jobs or merely as a dependency) must be from one of the connections specified in the pipeline configuration (this includes any trigger, reporter, or source requirement). When used in conjunctions with pipeline.require, this can ensure that pipeline requirements are exhaustive."
+                    "description": "If this is set to false then any change enqueued into the pipeline (whether it is enqueued to run jobs or merely as a dependency) must be from one of the connections specified in the pipeline configuration (this includes any trigger, reporter, or source requirement). When used in conjuctions with pipeline.require, this can ensure that pipeline requirements are exhaustive."
                 },
                 "supercedes": {
                     "type": ["string", "array"],
@@ -942,7 +942,7 @@
                 "success": {
                     "type": "object",
                     "title": "pipeline.success",
-                    "description": "Describes where Zuul should report to if all the jobs complete successfully. This section is optional; if it is omitted, Zuul will run jobs and do nothing on success - it will not report at all. If the section is present, the listed reporters will be asked to report on the jobs. The reporters are listed by their connection name. The options available depend on the driver for the supplied connection.",
+                    "description": "Describes where Zuul should report to if all the jobs complete successfully. This section is optional; if it is omitted, Zuul will run jobs and do nothing on success -- it will not report at all. If the section is present, the listed reporters will be asked to report on the jobs. The reporters are listed by their connection name. The options available depend on the driver for the supplied connection.",
                     "allOf": [
                         { "$ref": "#/definitions/any-driver-reporter" }
                     ]
@@ -1006,7 +1006,7 @@
                 "dequeue": {
                     "type": "object",
                     "title": "pipeline.dequeue",
-                    "description": "These reporters describe what Zuul should do if an item is dequeued. The dequeue reporters will only apply if all of the following are true:\n\n- The pipeline has a start reporter\n\n- The item has reported start\n\n- The item was dequeued without a result",
+                    "description": "These reporters describe what Zuul should do if an item is dequeued. The dequeue reporters will only apply if all of the following are true:\n\n- The pipeline has a start reporter\n- The item has reported start\n- The item was dequeued without a result",
                     "allOf": [
                         { "$ref": "#/definitions/any-driver-reporter" }
                     ]
@@ -1022,7 +1022,7 @@
                     "minimum": 0,
                     "default": 20,
                     "title": "pipeline.window",
-                    "description": "Dependent pipeline managers only. Zuul can rate limit dependent pipelines in a manner similar to TCP flow control.\n\nJobs are only started for items in the queue if they are within the active window for the pipeline. The initial length of this window is configurable with this value. The value given should be a positive integer value. A value of 0 disables rate limiting on the dependent pipeline manager.",
+                    "description": "Dependent pipeline managers only. Zuul can rate limit dependent pipelines in a manner similar to TCP flow control. See pipeline_window for an overview. Jobs are only started for items in the queue if they are within the active window for the pipeline. The initial length of this window is configurable with this value. The value given should be a positive integer value. A value of 0 disables rate limiting on the dependent pipeline manager.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/gating.html#pipeline-window"]
                 },
                 "window-floor": {
@@ -1042,7 +1042,7 @@
                     "enum": ["linear", "exponential"],
                     "default": "linear",
                     "title": "pipeline.window-increase-type",
-                    "description": "Dependent pipeline managers only. This value describes how the window should grow when changes are successfully merged by zuul.",
+                    "description": "Dependent pipeline managers only. This value describes how the window should grow when changes are successfully merged by zuul.\n\nlinear: Indicates that window-increase-factor should be added to the previous window value.\n\nexponential: Indicates that window-increase-factor should be multiplied against the previous window value and the result will become the window size.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/pipeline.html#attr-pipeline.window-increase-type"]
                 },
                 "window-decrease-factor": {
@@ -1082,7 +1082,7 @@
                 "implied-branches": {
                     "type": "array",
                     "title": "pragma.implied-branches",
-                    "description": "This is a list of regular expressions, just as job.branches, which may be used to supply the value of the implied branch matcher for all jobs and project-templates in a file.\n\nThis may be useful if two projects share jobs but have dissimilar branch names.",
+                    "description": "This is a list of regular expressions, just as job.branches, which may be used to supply the value of the implied branch matcher for all jobs and project-templates in a file.\n\nThe above code, when added to the stable/foo branch of a project would indicate that the job variants described in that file should not only be used for changes to stable/foo, but also on changes to stable/bar, which may be in another project.\n\nNote that if a job contains an explicit branch matcher, it will be used regardless of the value supplied here.\n\nIf this is used in a branch, it should include that branch name or changes on that branch may be ignored.\n\nNote also that the presence of implied-branches does not automatically set implied-branch-matchers. Zuul will still decide if implied branch matchers are warranted at all, using the heuristics described in job.branches, and only use the value supplied here if that is the case. If you want to declare specific implied branches on, for example, a config-project project (which normally would not use implied branches), you must set implied-branch-matchers as well.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/pragma.html#attr-pragma.implied-branches"],
                     "items": { "$ref": "#/definitions/regular-expression" }
                 }
@@ -1131,18 +1131,18 @@
                     "default": "merge",
                     "enum": ["merge", "merge-resolve", "cherry-pick", "squash-merge", "rebase"],
                     "title": "project.merge-mode",
-                    "description": "The merge mode which is used by Git for this project. Be sure this matches what the remote system which performs merges (i.e., Gerrit). The requested merge mode will also be used by the GitHub and GitLab drivers when performing merges.\n\nThe default is merge for all drivers except Gerrit, where the default is merge-resolve.\n\nEach project may only have one merge-mode therefore Zuul will use the first value that it encounters for a given project (regardless of in which branch the definition appears). It may not appear in a Project Template definition."
+                    "description": "The merge mode which is used by Git for this project. Be sure this matches what the remote system which performs merges (i.e., Gerrit). The requested merge mode will also be used by the GitHub and GitLab drivers when performing merges.\n\nEach project may only have one merge-mode therefore Zuul will use the first value that it encounters for a given project (regardless of in which branch the definition appears). It may not appear in a Project Template definition.\n\nIt must be one of the following values:\n\nmerge: Uses the default git merge strategy. This maps to the merge mode merge in GitHub and GitLab. This is the default merge mode for all drivers except gerrit and GitHub.\n\nmerge-resolve: Uses the resolve git merge strategy. This is a very conservative merge strategy which most closely matches the behavior of Gerrit, and is the default merge mode for Gerrit. This maps to the merge mode merge in GitHub and GitLab.\n\nmerge-recursive: Uses the recursive git merge strategy. This is the default merge mode for GitHub Enterise version earlier than 3.8.\n\nmerge-ort: Uses the ort git merge strategy. This is the default merge mode for github.com and GitHub Enterise version 3.8 or newer.\n\ncherry-pick: Cherry-picks each change onto the branch rather than performing any merges. This is not supported by GitHub and GitLab.\n\nsquash-merge: Squash merges each change onto the branch. This maps to the merge mode squash in GitHub and GitLab.\n\nrebase: Rebases the changes onto the branch. This is only supported by GitHub and maps to the rebase merge mode (but does not alter committer information in the way that GitHub does in the repos that Zuul prepares for jobs)."
                 },
                 "vars": {
                     "type": "object",
                     "title": "project.vars",
-                    "description": "A dictionary of variables to be made available for all jobs in all pipelines of this project.",
+                    "description": "A dictionary of variables to be made available for all jobs in all pipelines of this project. For more information see variable inheritance.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/job-content.html#user-jobs-variable-inheritance"]
                 },
                 "queue": {
                     "type": "string",
                     "title": "project.queue",
-                    "description": "This specifies the name of the shared queue this project is in. Any projects which interact with each other in tests should be part of the same shared queue in order to ensure that they don't merge changes which break the others. This is a free-form string; just set the same value for each group of projects.\n\nThe name can refer to the name of a queue which allows further configuration of the queue.\n\nEach pipeline for a project can only belong to one queue, therefore Zuul will use the first value that it encounters. It need not appear in the first instance of a project stanza; it may appear in secondary instances or even in a Project Template definition.",
+                    "description": "This specifies the name of the shared queue this project is in. Any projects which interact with each other in tests should be part of the same shared queue in order to ensure that they don't merge changes which break the others. This is a free-form string; just set the same value for each group of projects.\n\nThe name can refer to the name of a queue which allows further configuration of the queue.\n\nEach pipeline for a project can only belong to one queue, therefore Zuul will use the first value that it encounters. It need not appear in the first instance of a project stanza; it may appear in secondary instances or even in a Project Template definition.\n\nNote: This attribute is not evaluated speculatively and its setting shall be merged to be effective.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/project.html#attr-project.queue", "https://zuul-ci.org/docs/zuul/11.2.0/config/queue.html#attr-queue"]
                 }
             },
@@ -1150,7 +1150,7 @@
                 "^(?!(name$|description$|templates$|default-branch$|merge-mode$|vars$|queue$).*)": {
                     "type": "object",
                     "title": "project.&lt;pipeline&gt;",
-                    "description": "Each pipeline that the project participates in should have an entry in the project. The value for this key should be a dictionary with the following keys: jobs, debug, fail-fast.",
+                    "description": "Each pipeline that the project participates in should have an entry in the project. The value for this key should be a dictionary with the following format:",
                     "required": ["jobs"],
                     "properties": {
                         "jobs": {
@@ -1228,14 +1228,14 @@
                     "type": "boolean",
                     "default": "false",
                     "title": "queue.allow-circular-dependencies",
-                    "description": "Determines whether Zuul is allowed to process circular dependencies between changes for this queue. All projects that are part of a dependency cycle must share the same change queue.",
+                    "description": "Determines whether Zuul is allowed to process circular dependencies between changes for this queue. All projects that are part of a dependency cycle must share the same change queue.\n\nIf Zuul detects a dependency cycle it will ensure that every change also includes all other changes that are part of the cycle. However each change will still be a normal item in the queue with its own jobs.\n\nReporting of success will be postponed until all items in the cycle succeed. In the case of a failure in any of those items the whole cycle will be dequeued.\n\nAn error message will be posted to all items of the cycle if some items fail to report (e.g. merge failure when some items were already merged). In this case the target branch(es) might be in a broken state.\n\nIn general, circular dependencies are considered to be an antipattern since they add extra constraints to continuous deployment systems. Additionally, due to the lack of atomicity in merge operations in code review systems (this includes Gerrit, even with submitWholeTopic set), it may be possible for only part of a cycle to be merged. In that case, manual interventions (such as reverting a commit, or bypassing gating to force-merge the remaining commits) may be required.\n\nWarning: If the remote system is able to merge the first but unable to merge the second or later change in a dependency cycle, then the gating system for a project may be broken and may require an intervention to correct.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/queue.html#attr-queue.allow-circular-dependencies"]
                 },
                 "dependencies-by-topic": {
                     "type": "boolean",
                     "default": false,
                     "title": "queue.dependencies-by-topic",
-                    "description": "Determines whether Zuul should query the code review system for changes under the same topic and treat those as a set of circular dependencies.",
+                    "description": "Determines whether Zuul should query the code review system for changes under the same topic and treat those as a set of circular dependencies.\n\nNote that the Gerrit code review system supports a setting called change.submitWholeTopic, which, when set, will cause all changes under the same topic to be merged simultaneously. Zuul automatically observes this setting and treats all changes to be submitted together as circular dependencies. If this setting is enabled in gerrit, do not enable dependencies-by-topic in associated Zuul queues.\n\nBecause change.submitWholeTopic is applied system-wide in Gerrit, some Zuul users may wish to emulate the behavior for some projects without enabling it for all of Gerrit. In this case, setting dependencies-by-topic will cause Zuul to approxiamate the Gerrit behavior only for changes enqueued into queues where this is set.\n\nThis setting requires queue.allow-circular-dependencies to also be set. All of the caveats noted there continue to apply.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/config/queue.html#attr-queue.dependencies-by-topic"]
                 }
             }
@@ -1254,7 +1254,7 @@
                 "data": {
                     "type": "object",
                     "title": "secret.data",
-                    "description": "A dictionary which will be added to the Ansible variables available to the job. The values can be any of the normal YAML data types (strings, integers, dictionaries or lists) or encrypted strings.",
+                    "description": "A dictionary which will be added to the Ansible variables available to the job. The values can be any of the normal YAML data types (strings, integers, dictionaries or lists) or encrypted strings. See encryption for more information.",
                     "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/project-config.html#encryption"],
                     "patternProperties": {
                         "^(?!(name|data)$)": {
@@ -1312,7 +1312,7 @@
                 "cleanup": {
                     "title": "job.post-run.cleanup",
                     "type": "boolean",
-                    "description": "A boolean value indicating whether this is a “cleanup” playbook. Normally Zuul does not run post-run playbooks when it cancels a job, because the results of the job are discarded. If this value is set, then Zuul will make an effort to run the playbook even if the job is canceled."
+                    "description": "A boolean value indicating whether this is a \"cleanup\" playbook. Normally Zuul does not run post-run playbooks when it cancels a job, because the results of the job are discarded. If this value is set, then Zuul will make an effort to run the playbook even if the job is canceled."
                 }
             }
         },
@@ -1370,7 +1370,7 @@
                         "type": "string",
                         "enum": ["pull_request", "pull_request_review", "push", "check_run"],
                         "title": "pipeline.trigger.&lt;github source&gt;.event",
-                        "description": "The event from github. Supported events are:\r\n\n\r\n\n- pull_request\r\n\n- pull_request_review\r\n\n- push\r\n\n- check_run"
+                        "description": "Warning: While it is currently possible to list more than one event in a single trigger, that is deprecated and support will be removed in a future version. Instead, specify a single event type per trigger, and list multiple triggers as necessary to cover all intended events.\n\nThe event from github. Supported events are:\n\npull_request\n\npull_request_review\n\npush\n\ncheck_run"
                     },
                     "action": {
                         "oneOf": [
@@ -1388,7 +1388,7 @@
                         ],
                         "examples": ["https://zuul-ci.org/docs/zuul/11.2.0/drivers/github.html#attr-pipeline.trigger.%3Cgithub%20source%3E.action"],
                         "title": "pipeline.trigger.&lt;github source&gt;.action",
-                        "description": "A pull_request event will have associated action(s) to trigger from. The supported actions are:\r\n\n\r\n\n- opened\r\n\nPull request opened.\r\n\n\r\n\n- changed\r\n\nPull request synchronized.\r\n\n\r\n\n- closed\r\n\nPull request closed.\r\n\n\r\n\n- reopened\r\n\nPull request reopened.\r\n\n\r\n\n- comment\r\n\nComment added to pull request.\r\n\n\r\n\n- labeled\r\n\nLabel added to pull request.\r\n\n\r\n\n- unlabeled\r\n\nLabel removed from pull request.\r\n\n\r\n\n- status\r\n\nStatus set on commit. The syntax is user:status:value. This also can be a regular expression.\r\n\n\r\n\nA pull_request_review event will have associated action(s) to trigger from. The supported actions are:\r\n\n\r\n\n- submitted\r\n\nPull request review added.\r\n\n\r\n\n- dismissed\r\n\nPull request review removed.\r\n\n\r\n\nA check_run event will have associated action(s) to trigger from. The supported actions are:\r\n\n\r\n\n- requested\r\n\nA check run is requested.\r\n\n\r\n\n- completed\r\n\nA check run completed."
+                        "description": "A pipeline.trigger.<github source>.event.pull_request event will have associated action(s) to trigger from. The supported actions are:\n\nopened: Pull request opened.\n\nchanged: Pull request synchronized.\n\nclosed: Pull request closed.\n\nreopened: Pull request reopened.\n\ncomment: Comment added to pull request.\n\nlabeled: Label added to pull request.\n\nunlabeled: Label removed from pull request.\n\nstatus: Status set on commit. The syntax is user:status:value. This also can be a regular expression.\n\nA pipeline.trigger.<github source>.event.pull_request_review event will have associated action(s) to trigger from. The supported actions are:\n\nsubmitted: Pull request review added.\n\ndismissed: Pull request review removed.\n\nA pipeline.trigger.<github source>.event.check_run event will have associated action(s) to trigger from. The supported actions are:\n\nrequested: Warning: This is deprecated and will be removed in a future version. Use pipeline.trigger.<github source>.action.rerequested instead.\n\nDeprecated alias for pipeline.trigger.<github source>.action.rerequested.\n\nrerequested: A check run is rerequested.\n\ncompleted: A check run completed."
                     },
                     "branch": {
                         "title": "pipeline.trigger.&lt;github source&gt;.branch",
@@ -1422,7 +1422,7 @@
                         "type": "array",
                         "items": { "type": "string" },
                         "title": "pipeline.trigger.&lt;github source&gt;.label",
-                        "description": "This is only used for labeled and unlabeled pull_request actions. It accepts a list of strings each of which matches the label name in the event literally. 'label: recheck' will match a labeled action when pull request is labeled with a recheck label. label: 'do not test' will match a unlabeled action when a label with name do not test is removed from the pull request."
+                        "description": "This is only used for labeled and unlabeled pull_request actions. It accepts a list of strings each of which matches the label name in the event literally. label: recheck will match a labeled action when pull request is labeled with a recheck label. label: 'do not test' will match a unlabeled action when a label with name do not test is removed from the pull request."
                     },
                     "state": {
                         "oneOf": [
@@ -1439,20 +1439,20 @@
                             }
                         ],
                         "title": "pipeline.trigger.&lt;github source&gt;.state",
-                        "description": "This is only used for pull_request_review events. It accepts a list of strings each of which is matched to the review state, which can be one of approved, comment, or request_changes."
+                        "description": "This is only used for pull_request_review events. It accepts a list of strings each of which is matched to the review state, which can be one of approved, comment, changes_requested, dismissed, or pending."
                     },
                     "status": {
                         "type": ["string", "array"],
                         "items": { "type": "string" },
                         "title": "pipeline.trigger.&lt;github source&gt;.status",
-                        "description": "This is used for pull-request and status actions. It accepts a list of strings each of which matches the user setting the status, the status context, and the status itself in the format of user:context:status. For example, zuul_github_ci_bot:check_pipeline:success.",
+                        "description": "This is used for pull_request and status actions. It accepts a list of strings each of which matches the user setting the status, the status context, and the status itself in the format of user:context:status. For example, zuul_github_ci_bot:check_pipeline:success.",
                         "examples": ["- zuul_github_ci_bot:check_pipeline:success"]
                     },
                     "check": {
                         "type": ["string", "array"],
                         "items": { "type": "string" },
                         "title": "pipeline.trigger.&lt;github source&gt;.check",
-                        "description": "This is only used for check_run events. It works similar to the status attribute and accepts a list of strings each of which matches the app requesting or updating the check run, the check run's name and the conclusion in the format of app:name::conclusion. To make Zuul properly interact with Github's checks API, each pipeline that is using the checks API should have at least one trigger that matches the pipeline's name regardless of the result, e.g. zuul:cool-pipeline:.*. This will enable the cool-pipeline to trigger whenever a user requests the cool-pipeline check run as part of the zuul check suite. Additionally, one could use .*:success to trigger a pipeline whenever a successful check run is reported (e.g. useful for gating)."
+                        "description": "This is only used for check_run events. It works similar to the status attribute and accepts a list of strings each of which matches the app requesting or updating the check run, the check run's name and the conclusion in the format of app:name::conclusion. To make Zuul properly interact with Github's checks API, each pipeline that is using the checks API should have at least one trigger that matches the pipeline's name regardless of the result, e.g. zuul:cool-pipeline:.. This will enable the cool-pipeline to trigger whenever a user requests the cool-pipeline check run as part of the zuul check suite. Additionally, one could use .:success to trigger a pipeline whenever a successful check run is reported (e.g. useful for gating)."
                     },
                     "ref": {
                         "title": "pipeline.trigger.&lt;github source&gt;.ref",
@@ -1473,7 +1473,7 @@
                         "items": { "type": "string" },
                         "deprecated": true,
                         "title": "pipeline.trigger.&lt;github source&gt;.require-status",
-                        "description": "Deprecated: will now produce a configuration syntax warning, and in a future version of Zuul, an error.\n\nThis may be used for any event. It requires that a certain kind of status be present for the PR (the status could be added by the event in question). It follows the same syntax as pipeline.require.<github source>.status. For each specified criteria there must exist a matching status.\n\nThis is ignored if the pipeline.trigger.<github source>.require attribute is present."
+                        "description": "Warning: This is deprecated and will be removed in a future version. Use pipeline.trigger.<github source>.require instead.\n\nThis may be used for any event. It requires that a certain kind of status be present for the PR (the status could be added by the event in question). It follows the same syntax as pipeline.require.<github source>.status. For each specified criteria there must exist a matching status.\n\nThis is ignored if the pipeline.trigger.<github source>.require attribute is present."
                     },
                     "require": {
                         "type": "object",
@@ -1512,7 +1512,7 @@
                         "type": "string",
                         "enum": ["patchset-created", "comment-added", "ref-updated", "change-restored", "draft-published", "change-merged", "hashtags-changed"],
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.event",
-                        "description": "The event name from gerrit.\n\nThis field is treated as a regular expression.",
+                        "description": "The event name from gerrit. Examples: patchset-created, comment-added, ref-updated. This field is treated as a regular expression.",
                         "examples": ["patchset-created", "comment-added", "ref-updated"]
                     },
                     "branch": {
@@ -1590,7 +1590,7 @@
                     },
                     "email": {
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.email",
-                        "description": "This is used for any event. It takes a regex applied on the performer email, i.e. Gerrit account email address. If you want to specify several email filters, you must use a YAML list. Make sure to use non greedy matchers and to escapes dots!",
+                        "description": "This is used for any event. It takes a regex applied on the performer email, i.e. Gerrit account email address. If you want to specify several email filters, you must use a YAML list. Make sure to use non greedy matchers and to escapes dots! Example: email: ^.*?@example.org$.",
                         "examples": ["email: ^.*?@example\\.org$"],
                         "anyOf": [
                             {
@@ -1605,7 +1605,7 @@
                     },
                     "username": {
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.username",
-                        "description": "This is used for any event. It takes a regex applied on the performer username, i.e. Gerrit account name. If you want to specify several username filters, you must use a YAML list. Make sure to use non greedy matchers and to escapes dots.",
+                        "description": "This is used for any event. It takes a regex applied on the performer username, i.e. Gerrit account name. If you want to specify several username filters, you must use a YAML list. Make sure to use non greedy matchers and to escapes dots. Example: username: ^zuul$.",
                         "examples": ["username: ^zuul$"],
                         "anyOf": [
                             {
@@ -1648,7 +1648,7 @@
                     },
                     "removed": {
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.removed",
-                        "description": "This is only used for hashtags-changed events. It accepts a regex or list of regexes that are searched for in the list of hashtags removed to the change in this event. If any of these regexes match a portion of any of the removed hashtags, the trigger is matched.",
+                        "description": "This is only used for hashtags-changed events. It accepts a regex or list of regexes that are searched for in the list of hashtags removed from the change in this event. If any of these regexes match a portion of any of the removed hashtags, the trigger is matched.",
                         "anyOf": [
                             {
                                 "$ref": "#/definitions/regular-expression",
@@ -1664,13 +1664,13 @@
                         "type": "object",
                         "deprecated": true,
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.require-approval",
-                        "description": "This is deprecated and will be removed in a future version. Use pipeline.trigger.<gerrit source>.require instead.\n\nThis may be used for any event. It requires that a certain kind of approval be present for the current patchset of the change (the approval could be added by the event in question). It follows the same syntax as pipeline.require.<gerrit source>.approval. For each specified criteria there must exist a matching approval.\n\nThis is ignored if the pipeline.trigger.<gerrit source>.require attribute is present."
+                        "description": "Warning: This is deprecated and will be removed in a future version. Use pipeline.trigger.<gerrit source>.require instead.\n\nThis may be used for any event. It requires that a certain kind of approval be present for the current patchset of the change (the approval could be added by the event in question). It follows the same syntax as pipeline.require.<gerrit source>.approval. For each specified criteria there must exist a matching approval.\n\nThis is ignored if the pipeline.trigger.<gerrit source>.require attribute is present."
                     },
                     "reject-approval": {
                         "type": "object",
                         "deprecated": true,
                         "title": "pipeline.trigger.&lt;gerrit source&gt;.reject-approval",
-                        "description": "This is deprecated and will be removed in a future version. Use pipeline.trigger.<gerrit source>.reject instead.\n\nThis takes a list of approvals in the same format as pipeline.trigger.<gerrit source>.require-approval but the item will fail to enter the pipeline if there is a matching approval.\n\nThis is ignored if the pipeline.trigger.<gerrit source>.reject attribute is present."
+                        "description": "Warning: This is deprecated and will be removed in a future version. Use pipeline.trigger.<gerrit source>.reject instead.\n\nThis takes a list of approvals in the same format as pipeline.trigger.<gerrit source>.require-approval but the item will fail to enter the pipeline if there is a matching approval.\n\nThis is ignored if the pipeline.trigger.<gerrit source>.reject attribute is present."
                     },
                     "require": {
                         "type": "object",
@@ -1709,7 +1709,7 @@
                         "type": "string",
                         "enum": ["project-change-merged", "parent-change-enqueued"],
                         "title": "pipeline.trigger.&lt;zuul source&gt;.event",
-                        "description": "The event name. Currently supported events:\n\n- project-change-merged\n\nWhen Zuul merges a change to a project, it generates this event for every open change in the project.\n\nTriggering on this event can cause poor performance when using the GitHub driver with a large number of installations.\n\n- parent-change-enqueued\n\nWhen Zuul enqueues a change into any pipeline, it generates this event for every child of that change."
+                        "description": "The event name. Currently supported events:\n\nproject-change-merged: When Zuul merges a change to a project, it generates this event for every open change in the project. If there are a large number of open changes, this may produce a large number of events and result in poor performance.\n\nWarning: Triggering on this event can cause poor performance when using the GitHub driver with a large number of installations.\n\nparent-change-enqueued: When Zuul enqueues a change into any pipeline, it generates this event for every child of that change. If there are a large number of open changes, this may produce a large number of events and result in poor performance.\n\nNote: The dependent pipeline manager automatically enqueues forward, reverse, and if configured, circular dependencies of any change that is enqueued. It is not necessary to add this trigger to gate pipelines."
                     },
                     "pipeline": {
                         "type": "string",
@@ -1744,7 +1744,7 @@
                     "type": "string",
                     "enum": ["pending", "success", "failure"],
                     "title": "pipeline.&lt;reporter&gt;.&lt;github source&gt;.status",
-                    "description": "Report status via the Github status API. Set to one of:\r\n\n- pending\r\n\n- success\r\n\n- failure\r\n\n\r\n\nThis is usually mutually exclusive with a value set in pipeline.<reporter>.<github source>.check, since this reports similar results via a different API. This API is older and results do not show up on the \u201Cchecks\u201D tab in the Github UI. It is recommended to use check unless you have a specific reason to use the status API."
+                    "description": "Report status via the Github status API (https://docs.github.com/v3/repos/statuses/). Set to one of\n\n- pending\n- success\n- failure\n\nThis is usually mutually exclusive with a value set in pipeline.<reporter>.<github source>.check, since this reports similar results via a different API. This API is older and results do not show up on the \"checks\" tab in the Github UI. It is recommended to use check unless you have a specific reason to use the status API."
                 },
                 "status-url": {
                     "type": "string",
@@ -1755,7 +1755,7 @@
                     "type": "string",
                     "enum": ["cancelled", "failure", "in_progress", "neutral", "skipped", "success"],
                     "title": "pipeline.&lt;reporter&gt;.&lt;github source&gt;.check",
-                    "description": "Report status via the Github checks API. Set to one of:\r\n\n- cancelled\r\n\n- failure\r\n\n- in_progress\r\n\n- neutral\r\n\n- skipped\r\n\n- success\r\n\n\r\n\nThis is usually mutually exclusive with a value set in pipeline.<reporter>.<github source>.status, since this reports similar results via a different API."
+                    "description": "Report status via the Github checks API (https://docs.github.com/v3/checks/). Set to one of\n\n- cancelled\n- failure\n- in_progress\n- neutral\n- skipped\n- success\n\nThis is usually mutually exclusive with a value set in pipeline.<reporter>.<github source>.status, since this reports similar results via a different API."
                 },
                 "comment": {
                     "type": "boolean",
@@ -1767,7 +1767,7 @@
                     "type": "string",
                     "enum": ["approve", "comment", "request-changes"],
                     "title": "pipeline.&lt;reporter&gt;.&lt;github source&gt;.review",
-                    "description": "One of:\n\n- approve\n\n- comment\n\n- request-changes\n\nthat causes the reporter to submit a review with the specified status on Pull Request based items. Has no effect on other items."
+                    "description": "One of approve, comment, or request-changes that causes the reporter to submit a review with the specified status on Pull Request based items. Has no effect on other items."
                 },
                 "review-body": {
                     "type": "string",
@@ -1778,7 +1778,7 @@
                     "type": "boolean",
                     "default": false,
                     "title": "pipeline.&lt;reporter&gt;.&lt;github source&gt;.merge",
-                    "description": "Boolean value that determines if the reporter should merge the pull request. Only used for Pull Request based items."
+                    "description": "Boolean value that determines if the reporter should merge the pull reqeust. Only used for Pull Request based items."
                 },
                 "label": {
                     "type": "array",
@@ -1797,7 +1797,7 @@
         "gerrit-reporter-entry": {
             "type": "object",
             "title": "pipeline.&lt;reporter&gt;.&lt;gerrit source&gt;",
-            "description": "The dictionary passed to the Gerrit reporter is used to provide label values to Gerrit. To set the Verified label to 1, add verified: 1 to the dictionary.",
+            "description": "The dictionary passed to the Gerrit reporter is used to provide label values to Gerrit. To set the Verified label to 1, add verified: 1 to the dictionary.\n\nThe following additional keys are recognized:",
             "properties": {
                 "submit": {
                     "type": "boolean",
@@ -1831,20 +1831,20 @@
                 "topic": {
                     "type": "string",
                     "title": "pipeline.&lt;reporter&gt;.&lt;mqtt source&gt;.topic",
-                    "description": "The MQTT topic to publish messages. The topic can be a format string that can use the following parameters: tenant, pipeline, project, branch, change, patchset and ref. MQTT topic can have hierarchy separated by '/'."
+                    "description": "The MQTT topic to publish messages. The topic can be a format string that can use the following parameters: tenant, pipeline, project, branch, change, patchset and ref. MQTT topic can have hierarchy separated by /, more details in this doc (https://mosquitto.org/man/mqtt-7.html)"
                 },
                 "qos": {
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 2,
                     "title": "pipeline.&lt;reporter&gt;.&lt;mqtt source&gt;.qos",
-                    "description": "The quality of service level to use, it can be 0, 1 or 2."
+                    "description": "The quality of service level to use, it can be 0, 1 or 2. Read more in this guide (https://www.hivemq.com/blog/mqtt-essentials-part-6-mqtt-quality-of-service-levels)"
                 },
                 "include-returned-data": {
                     "type": "boolean",
                     "default": false,
                     "title": "pipeline.&lt;reporter&gt;.&lt;mqtt source&gt;.include-returned-data",
-                    "description": "If set to true, Zuul will include any data returned from the job via Return Values."
+                    "description": "If set to true, Zuul will include any data returned from the job via return_values."
                 }
             },
             "required": ["topic"]
@@ -1899,7 +1899,7 @@
             "type": "object",
             "additionalProperties": false,
             "title": "pipeline.require.&lt;github source&gt;",
-            "description": "As described in pipeline.require and pipeline.reject, pipelines may specify that items meet certain conditions in order to be enqueued into the pipeline. These conditions vary according to the source of the project in question.",
+            "description": "The dictionary passed to the GitHub pipeline require attribute supports the following attributes:",
             "properties": {
                 "review": {
                     "type": "array",
@@ -1922,13 +1922,13 @@
                                 "type": "string",
                                 "pattern": "^[0-9]+[smhdw]$",
                                 "title": "pipeline.require.&lt;github source&gt;.review.older-than",
-                                "description": "If present, the code review must be older than this amount of time to match. Provide a time interval as a number with a suffix of “w” (weeks), “d” (days), “h” (hours), “m” (minutes), “s” (seconds). Example 48h or 2d."
+                                "description": "If present, the code review must be older than this amount of time to match. Provide a time interval as a number with a suffix of \"w\" (weeks), \"d\" (days), \"h\" (hours), \"m\" (minutes), \"s\" (seconds). Example 48h or 2d."
                             },
                             "newer-than": {
                                 "type": "string",
                                 "pattern": "^[0-9]+[smhdw]$",
                                 "title": "pipeline.require.&lt;github source&gt;.review.newer-than",
-                                "description": "If present, the code review must be newer than this amount of time to match. Same format as “older-than”."
+                                "description": "If present, the code review must be newer than this amount of time to match. Same format as \"older-than\"."
                             },
                             "type": {
                                 "oneOf": [
@@ -1981,7 +1981,7 @@
                     "type": ["string", "array"],
                     "items": { "type": "string" },
                     "title": "pipeline.require.&lt;github source&gt;.status",
-                    "description": "A string value that corresponds with the status of the pull request. The syntax is user:status:value. This can also be a regular expression.\r\n\n\r\n\nZuul does not differentiate between a status reported via status API or via checks API (which is also how Github behaves in terms of branch protection and status checks). Thus, the status could be reported by a pipeline.<reporter>.<github source>.status or a pipeline.<reporter>.<github source>.check.\r\n\n\r\n\nWhen a status is reported via the status API, Github will add a [bot] to the name of the app that reported the status, resulting in something like user[bot]:status:value. For a status reported via the checks API, the app\u2019s slug will be used as is."
+                    "description": "A string value that corresponds with the status of the pull request. The syntax is user:status:value. This can also be a regular expression.\n\nZuul does not differentiate between a status reported via status API or via checks API (which is also how Github behaves in terms of branch protection and status checks). Thus, the status could be reported by a pipeline.<reporter>.<github source>.status or a pipeline.<reporter>.<github source>.check.\n\nWhen a status is reported via the status API, Github will add a [bot] to the name of the app that reported the status, resulting in something like user[bot]:status:value. For a status reported via the checks API, the app's slug will be used as is."
                 },
                 "label": {
                     "type": ["string", "array"],
@@ -1998,7 +1998,7 @@
             "properties": {
                 "approval": {
                     "title": "pipeline.require.&lt;gerrit source&gt;.approval",
-                    "description": "This requires that a certain kind of approval be present for the current patchset of the change (the approval could be added by the event in question). Approval is a dictionary or a list of dictionaries with attributes listed below, all of which are optional and are combined together so that there must be an approval matching all specified requirements.\n\nAny other field is interpreted as a review category and value pair. For example Verified: 1 would require that the approval be for a +1 vote in the “Verified” column.",
+                    "description": "This requires that a certain kind of approval be present for the current patchset of the change (the approval could be added by the event in question). Approval is a dictionary or a list of dictionaries with attributes listed below, all of which are optional and are combined together so that there must be an approval matching all specified requirements.\n\nAny other field is interpreted as a review category and value pair. For example Verified: 1 would require that the approval be for a +1 vote in the \"Verified\" column. The value may either be a single value or a list: Verified: [1, 2] would match either a +1 or +2 vote.",
                     "oneOf": [
                         {
                             "type": "object",
@@ -2017,13 +2017,13 @@
                                     "type": "string",
                                     "pattern": "^[0-9]+[smhdw]$",
                                     "title": "pipeline.require.&lt;gerrit source&gt;.approval.older-than",
-                                    "description": "If present, the code review must be older than this amount of time to match. Provide a time interval as a number with a suffix of “w” (weeks), “d” (days), “h” (hours), “m” (minutes), “s” (seconds). Example 48h or 2d."
+                                    "description": "If present, the approval must be older than this amount of time to match. Provide a time interval as a number with a suffix of \"w\" (weeks), \"d\" (days), \"h\" (hours), \"m\" (minutes), \"s\" (seconds). Example 48h or 2d."
                                 },
                                 "newer-than": {
                                     "type": "string",
                                     "pattern": "^[0-9]+[smhdw]$",
                                     "title": "pipeline.require.&lt;gerrit source&gt;.approval.newer-than",
-                                    "description": "If present, the code review must be newer than this amount of time to match. Same format as “older-than”."
+                                    "description": "If present, the approval must be newer than this amount of time to match. Same format as \"older-than\"."
                                 }
                             },
                             "patternProperties": {
@@ -2117,7 +2117,7 @@
             "type": "object",
             "title": "pipeline.reject.&lt;github source&gt;",
             "additionalProperties": false,
-            "description": "The reject attribute is the mirror of the require attribute and is used to specify pull requests which should not be enqueued into a pipeline.",
+            "description": "The reject attribute is the mirror of the require attribute and is used to specify pull requests which should not be enqueued into a pipeline. It accepts a dictionary under the connection name and with the following attributes:",
             "properties": {
                 "review": {
                     "type": "array",
@@ -2140,13 +2140,13 @@
                                 "type": "string",
                                 "pattern": "^[0-9]+[smhdw]$",
                                 "title": "pipeline.reject.&lt;github source&gt;.review.older-than",
-                                "description": "If present, the code review must be older than this amount of time to match. Provide a time interval as a number with a suffix of “w” (weeks), “d” (days), “h” (hours), “m” (minutes), “s” (seconds). Example 48h or 2d."
+                                "description": "If present, the code review must be older than this amount of time to match. Provide a time interval as a number with a suffix of \"w\" (weeks), \"d\" (days), \"h\" (hours), \"m\" (minutes), \"s\" (seconds). Example 48h or 2d."
                             },
                             "newer-than": {
                                 "type": "string",
                                 "pattern": "^[0-9]+[smhdw]$",
                                 "title": "pipeline.reject.&lt;github source&gt;.review.newer-than",
-                                "description": "If present, the code review must be newer than this amount of time to match. Same format as “older-than”."
+                                "description": "If present, the code review must be newer than this amount of time to match. Same format as \"older-than\"."
                             },
                             "type": {
                                 "oneOf": [
@@ -2199,13 +2199,13 @@
                     "type": ["string", "array"],
                     "items": { "type": "string" },
                     "title": "pipeline.reject.&lt;github source&gt;.status",
-                    "description": "A string value that corresponds with the status of the pull request. The syntax is user:status:value. This can also be a regular expression.\r\n\n\r\n\nZuul does not differentiate between a status reported via status API or via checks API (which is also how Github behaves in terms of branch protection and status checks). Thus, the status could be reported by a pipeline.<reporter>.<github source>.status or a pipeline.<reporter>.<github source>.check.\r\n\n\r\n\nWhen a status is reported via the status API, Github will add a [bot] to the name of the app that reported the status, resulting in something like user[bot]:status:value. For a status reported via the checks API, the app\u2019s slug will be used as is."
+                    "description": "A string value that corresponds with the status of the pull request. The syntax is user:status:value. This can also be a regular expression.\n\nZuul does not differentiate between a status reported via status API or via checks API (which is also how Github behaves in terms of branch protection and status checks). Thus, the status could be reported by a pipeline.<reporter>.<github source>.status or a pipeline.<reporter>.<github source>.check.\n\nWhen a status is reported via the status API, Github will add a [bot] to the name of the app that reported the status, resulting in something like user[bot]:status:value. For a status reported via the checks API, the app's slug will be used as is."
                 },
                 "label": {
                     "type": ["string", "array"],
                     "items": { "type": "string" },
                     "title": "pipeline.reject.&lt;github source&gt;.label",
-                    "description": "A string value indicating that the pull request must have the indicated label (or labels)."
+                    "description": "A string value indicating that the pull request must not have the indicated label (or labels)."
                 }
             }
         },
@@ -2216,7 +2216,7 @@
             "properties": {
                 "approval": {
                     "title": "pipeline.reject.&lt;gerrit source&gt;.approval",
-                    "description": "This requires that a certain kind of approval not be present for the current patchset of the change (the approval could be added by the event in question). Approval is a dictionary or a list of dictionaries with attributes listed below, all of which are optional and are combined together so that there must be no approvals matching all specified requirements.\n\nAny other field is interpreted as a review category and value pair. For example Verified: 1 would require that the approval be for a +1 vote in the “Verified” column.",
+                    "description": "This requires that a certain kind of approval not be present for the current patchset of the change (the approval could be added by the event in question). Approval is a dictionary or a list of dictionaries with attributes listed below, all of which are optional and are combined together so that there must be no approvals matching all specified requirements.\n\nAny other field is interpreted as a review category and value pair. For example Verified: 1 would require that the approval be for a +1 vote in the \"Verified\" column. The value may either be a single value or a list: Verified: [1, 2] would match either a +1 or +2 vote.",
                     "oneOf": [
                         {
                             "type": "object",
@@ -2235,13 +2235,13 @@
                                     "type": "string",
                                     "pattern": "^[0-9]+[smhdw]$",
                                     "title": "pipeline.reject.&lt;gerrit source&gt;.approval.older-than",
-                                    "description": "If present, the approval must be older than this amount of time to match. Provide a time interval as a number with a suffix of “w” (weeks), “d” (days), “h” (hours), “m” (minutes), “s” (seconds). Example 48h or 2d."
+                                    "description": "If present, the approval must be older than this amount of time to match. Provide a time interval as a number with a suffix of \"w\" (weeks), \"d\" (days), \"h\" (hours), \"m\" (minutes), \"s\" (seconds). Example 48h or 2d."
                                 },
                                 "newer-than": {
                                     "type": "string",
                                     "pattern": "^[0-9]+[smhdw]$",
                                     "title": "pipeline.reject.&lt;gerrit source&gt;.approval.newer-than",
-                                    "description": "If present, the approval must be newer than this amount of time to match. Same format as “older-than”."
+                                    "description": "If present, the approval must be newer than this amount of time to match. Same format as \"older-than\"."
                                 }
                             },
                             "patternProperties": {

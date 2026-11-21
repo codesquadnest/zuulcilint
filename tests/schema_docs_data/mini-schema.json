@@ -1,0 +1,41 @@
+{
+    "title": "JSON/YAML schema for Zuul CI 1.2.3 configuration files",
+    "description": "Top level.",
+    "definitions": {
+        "job": {
+            "title": "Job",
+            "description": "Untitled-ish node left alone.",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "title": "job.name",
+                    "description": "old name text"
+                },
+                "description": {
+                    "type": "string",
+                    "title": "job.description",
+                    "description": "keep me: no docs match"
+                },
+                "abstract": { "type": "boolean", "title": "job.abstract", "description": "Don’t touch ’this’ until changed." },
+                "files": {
+                    "type": ["string", "array"],
+                    "enum": ["a", "b"],
+                    "title": "job.files",
+                    "description": "A list of regular expressions.  Examples:\n\n- first item continued here\n- second item\n\nUsage:\n\nWarning: This is risky and wraps.\n\nNote: Be aware."
+                },
+                "nodeset": {
+                    "description": "no title so untouched"
+                }
+            }
+        },
+        "reporter": {
+            "title": "pipeline.&lt;reporter&gt;.&lt;gerrit source&gt;",
+            "properties": {
+                "submit": {
+                    "title": "pipeline.&lt;reporter&gt;.&lt;gerrit source&gt;.submit",
+                    "description": "old"
+                }
+            }
+        }
+    }
+}
