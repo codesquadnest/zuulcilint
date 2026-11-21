@@ -146,8 +146,29 @@ def check_inexistent_nodesets(
     return inexistent_nodesets
 
 
-def check_duplicate_semaphore(jobs: list[dict | None]) -> set[dict[str, str] | None]:
-    """Check for jobs and their run entries sharing a semaphore with the same name.
+_RUN_TYPES = ("pre-run", "run", "post-run", "cleanup-run")
+
+
+def _semaphore_names(semaphores: str | dict | list | None) -> set[str]:
+    """Normalize a semaphores value (string, dict or list of either) into names."""
+    if semaphores is None:
+        return set()
+    if not isinstance(semaphores, list):
+        semaphores = [semaphores]
+    names = set()
+    for semaphore in semaphores:
+        if isinstance(semaphore, dict):
+            semaphore = semaphore.get("name")  # noqa: PLW2901
+        if isinstance(semaphore, str):
+            names.add(semaphore)
+    return names
+
+
+def check_duplicate_semaphore(jobs: list[dict | None]) -> set[str]:
+    """Check for jobs and their playbooks sharing a semaphore with the same name.
+
+    Playbooks are the entries of ``pre-run``, ``run``, ``post-run`` and
+    ``cleanup-run``.
 
     Args:
     ----
@@ -158,49 +179,31 @@ def check_duplicate_semaphore(jobs: list[dict | None]) -> set[dict[str, str] | N
         A set of duplicated semaphores.
 
     """
-    duplicate_semaphores = set()
-    _job_semaphore_list = {}
-    _run_semaphore_list = {}
+    job_semaphores: dict[str, set[str]] = {}
+    playbook_semaphores: dict[str, set[str]] = {}
 
     for job in jobs:
         if job is None or "job" not in job:
             continue
 
-        job_name = job["job"].get("name")
+        job_def = job["job"]
+        job_name = job_def.get("name")
         if job_name is None:
             continue
 
-        # Initialize lists for semaphores if not already present
-        _job_semaphore_list.setdefault(job_name, [])
-        _run_semaphore_list.setdefault(job_name, [])
+        job_semaphores.setdefault(job_name, set()).update(
+            _semaphore_names(job_def.get("semaphores")),
+        )
+        playbooks = playbook_semaphores.setdefault(job_name, set())
+        for run_type in _RUN_TYPES:
+            run_entries = job_def.get(run_type) or []
+            if not isinstance(run_entries, list):
+                run_entries = [run_entries]
+            for run in run_entries:
+                if isinstance(run, dict):
+                    playbooks.update(_semaphore_names(run.get("semaphores")))
 
-        # Collect job semaphores
-        job_semaphores = job["job"].get("semaphores", [])
-        if isinstance(job_semaphores, str):
-            _job_semaphore_list[job_name].append(job_semaphores)
-        else:
-            _job_semaphore_list[job_name].extend(job_semaphores)
-
-        # Collect run semaphores
-        if isinstance(job["job"].get("run"), str):
-            continue
-        run_entries = job["job"].get("run", [])
-        if isinstance(run_entries, dict):  # Single run entry case
-            run_entries = [run_entries]
-        for run in run_entries:
-            if isinstance(run, str):
-                # When run entry is a string this means it's a playbook
-                continue
-            run_semaphores = run.get("semaphores", [])
-            if isinstance(run_semaphores, str):
-                _run_semaphore_list[job_name].append(run_semaphores)
-            else:
-                _run_semaphore_list[job_name].extend(run_semaphores)
-
-    # Find duplicate semaphores
-    for job_name, job_semaphores in _job_semaphore_list.items():
-        job_semaphores_set = set(job_semaphores)
-        run_semaphores_set = set(_run_semaphore_list[job_name])
-        duplicate_semaphores.update(job_semaphores_set & run_semaphores_set)
-
+    duplicate_semaphores = set()
+    for job_name, names in job_semaphores.items():
+        duplicate_semaphores |= names & playbook_semaphores[job_name]
     return duplicate_semaphores
